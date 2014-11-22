@@ -3,7 +3,7 @@ package org.reific.braid;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ExampleKnowStorageImpl implements KnotStorage {
+public class ExampleKnotStorageImpl implements KnotStorage {
 
 	int counter = 0;
 	private final Map<Integer,String> map =  new HashMap<Integer, String>();
