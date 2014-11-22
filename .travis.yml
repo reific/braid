@@ -1,3 +1,6 @@
 language: java
 jdk:
   - oraclejdk8
+secure: "DAw2NSTHuhXyIfT2pFKRpV3yfRgdCSOqff4NNl3k4X1Cmge/ekEOiBepc7L+b1ye0U+seA+80xMquX0cbCnEXIjPE5MXU2iKT0t4+WHqpBB0Y4K87Zbb/3kxw3C3s9StW7Fw2Y/SAy3ztbQVPKrbL22WkIlXRrbVWWkQEG7Qcy8="
+script: "mvn clean test javadoc:javadoc"
+after_success: - .push-javadoc-to-gh-pages.sh

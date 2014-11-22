@@ -3,10 +3,13 @@ package org.reific.braid;
 public class BraidImpl implements Braid {
 	
 	private final InternalKnot knot;
+	/**
+	 * 
+	 */
 	private int index;
 	
-	BraidImpl(Knot knot, CharSequence string) {
-		this.knot = (InternalKnot) knot;
+	BraidImpl(InternalKnot knot, CharSequence string) {
+		this.knot = knot;
 		this.index = this.knot.addString(string);
 	}
 
