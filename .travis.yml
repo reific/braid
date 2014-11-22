@@ -1,7 +1,9 @@
 language: java
 jdk:
-  - oraclejdk8
-secure: "DAw2NSTHuhXyIfT2pFKRpV3yfRgdCSOqff4NNl3k4X1Cmge/ekEOiBepc7L+b1ye0U+seA+80xMquX0cbCnEXIjPE5MXU2iKT0t4+WHqpBB0Y4K87Zbb/3kxw3C3s9StW7Fw2Y/SAy3ztbQVPKrbL22WkIlXRrbVWWkQEG7Qcy8="
-script: "mvn clean test javadoc:javadoc"
+- oraclejdk8
+script: mvn clean test javadoc:javadoc
 after_success:
-  - "./.push-javadoc-to-gh-pages.sh"
+- "./.push-javadoc-to-gh-pages.sh"
+env:
+  global:
+    secure: L28ekEWKhwcuYePTR8HBb4eo68HWFd86cVs+0rm3jr7rO85xEXGmSZnhJ89CoRyIfk0nF910TmJdpAkGvwiFDaJjjoCccpUZOXISlbH1TXX7BI6nPKkVhWwCGXQyZ0s0ZfyHUnG8Jzd7SwJVrJvd2OwRZq+wV81jbbh3pG5mAAw=
