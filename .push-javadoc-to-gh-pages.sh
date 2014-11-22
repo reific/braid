@@ -21,4 +21,3 @@ if [ "$TRAVIS_REPO_SLUG" == "reific/braid" ] && [ "$TRAVIS_PULL_REQUEST" == "fal
   echo -e "Published Javadoc to gh-pages.\n"
   
 fi
-
