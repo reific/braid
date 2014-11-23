@@ -1,7 +1,9 @@
-package org.reific.braid;
+package org.reific.braid.knots;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import org.reific.braid.KnotStorage;
 
 public class ExampleKnotStorageImpl implements KnotStorage {
 

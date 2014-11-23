@@ -1,6 +1,5 @@
 package org.reific.braid;
 
-
 /**
  * <p align="left">
  * <img src="logo.jpg"/>
@@ -14,12 +13,13 @@ package org.reific.braid;
  * associated Knot.
  * 
  * <p>
- * This javadoc content is also available on the <a href="???">???</a> web page.
- * All documentation is kept in javadocs because it guarantees consistency
- * between what's on the web and what's in the source code. Also, it makes
- * possible to access documentation straight from the IDE even if you work
- * offline. This documentation pattern was inspired by the excellent mocking
- * library <a href="http://mockito.org">Mockito</a>
+ * This javadoc content is also available on the <a href=
+ * "http://reific.github.io/braid/javadoc/apidocs/org/reific/braid/Braid.html"
+ * >Braid</a> web page. All documentation is kept in javadocs because it
+ * guarantees consistency between what's on the web and what's in the source
+ * code. Also, it makes possible to access documentation straight from the IDE
+ * even if you work offline. This documentation pattern was inspired by the
+ * excellent mocking library <a href="http://mockito.org">Mockito</a>
  *
  * <h1>Contents</h1>
  *
