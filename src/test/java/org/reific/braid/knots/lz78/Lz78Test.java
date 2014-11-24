@@ -1,4 +1,4 @@
-package org.reific.braid;
+package org.reific.braid.knots.lz78;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
@@ -8,6 +8,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Test;
+import org.reific.braid.Braid;
+import org.reific.braid.Braids;
+import org.reific.braid.Knot;
+import org.reific.braid.Knots;
 
 public class Lz78Test {
 
