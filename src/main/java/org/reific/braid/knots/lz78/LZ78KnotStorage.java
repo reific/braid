@@ -29,8 +29,7 @@ import org.reific.braid.KnotStorage;
 public class LZ78KnotStorage implements KnotStorage {
 
 	private static final int INITIAL_BYTE_BUFFER_SIZE = 2;
-	private final AutoGrowingByteBuffer byteBuffer = new AutoGrowingByteBuffer(
-			INITIAL_BYTE_BUFFER_SIZE);
+	private final AutoGrowingByteBuffer byteBuffer = new AutoGrowingByteBuffer(INITIAL_BYTE_BUFFER_SIZE);
 	private final Map<String, Integer> dictionary = new HashMap<String, Integer>();
 	private int currentPointer = -1;
 	private String currentPhrase;
@@ -83,25 +82,25 @@ public class LZ78KnotStorage implements KnotStorage {
 
 	@Override
 	public String lookup(int index) {
-		String result = "";
 		int sizeOfString = byteBuffer.getInt(index);
-		for (int i = 0; result.length() < sizeOfString; i++) {
-			result += lookupInternal(index + 4 + (i * 6));
+		StringBuilder result = new StringBuilder();
+		index = index + 4;
+		// walk forward over the current string
+		while (result.length() < sizeOfString) {
+			String result2 = "";
+			int pointer = index;
+			// follow the pointer backwards to find tokens
+			while (pointer > 0) {
+				char character = byteBuffer.getChar(pointer);
+				pointer = byteBuffer.getInt(pointer + 2);
+				result2 = character + result2;
+			}
+			result.append(result2);
+			index += 6;
 		}
 
-		return result;
+		return result.toString();
 
-	}
-
-	private String lookupInternal(int index) {
-		String result = "";
-		int pointer = index;
-		while (pointer > 0) {
-			char character = byteBuffer.getChar(pointer);
-			pointer = byteBuffer.getInt(pointer + 2);
-			result = character + result;
-		}
-		return result;
 	}
 
 }
