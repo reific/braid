@@ -1,7 +1,7 @@
 package org.reific.braid;
 
 import org.reific.braid.knots.ExampleKnotStorageImpl;
-import org.reific.braid.knots.LZ78KnotStorage;
+import org.reific.braid.knots.lz78.LZ78KnotStorage;
 
 public class Knots {
 
