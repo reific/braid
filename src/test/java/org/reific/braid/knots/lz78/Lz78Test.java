@@ -42,7 +42,7 @@ public class Lz78Test {
 	@Test
 	public void testBasicFunctionality() {
 		final Knot knot = Knots.lz78();
-		String string = new String("the theory");
+		String string = new String("this that the other");
 		Braid braid = Braids.newBraid(knot, string);
 		assertEquals(string, braid.get());
 		assertNotSame(string, braid.get());

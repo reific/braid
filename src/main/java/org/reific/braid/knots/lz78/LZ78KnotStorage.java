@@ -6,6 +6,24 @@ import java.util.Map;
 import org.reific.braid.KnotStorage;
 
 /**
+ * <pre>
+ * 
+ * this that the other
+ * 
+ * 0  |19  |
+ * 4  |t,-1| t
+ * 10 |h,-1| h
+ * 16 |i,-1| i
+ * 22 |s,-1| s
+ * 28 | ,-1| _
+ * 34 |h, 4| th
+ * 40 |a,-1| a
+ * 46 | , 4| t_
+ * 52 |e,34| the
+ * 58 |o,28| _o
+ * 64 |r,52| ther
+ * 
+ * </pre>
  * 
  */
 public class LZ78KnotStorage implements KnotStorage {
@@ -14,26 +32,24 @@ public class LZ78KnotStorage implements KnotStorage {
 	private final AutoGrowingByteBuffer byteBuffer = new AutoGrowingByteBuffer(
 			INITIAL_BYTE_BUFFER_SIZE);
 	private final Map<String, Integer> dictionary = new HashMap<String, Integer>();
-	private final String[] reverseDictionary = new String[100000];
-	private int currentPointer = 0;
-	private int nextNewPointer;
+	private int currentPointer = -1;
 	private String currentPhrase;
-	private int bufferPosition;
 
 	public LZ78KnotStorage() {
 
-		dictionary.put("", currentPointer);
-		reverseDictionary[currentPointer] = "";
-		nextNewPointer++;
+		dictionary.put("", -1);
 		currentPhrase = "";
 	}
 
 	@Override
 	public int store(String s) {
-		bufferPosition = byteBuffer.nextWritePosition();
+		int startingBufferPosition = byteBuffer.nextWritePosition();
+		int bufferPosition;
 
 		byteBuffer.putInt(s.length());
+
 		for (int i = 0; i < s.length(); i++) {
+			bufferPosition = byteBuffer.nextWritePosition();
 			char token = s.charAt(i);
 			Integer pointer = dictionary.get(currentPhrase + token);
 			if (pointer == null) {
@@ -41,15 +57,9 @@ public class LZ78KnotStorage implements KnotStorage {
 				// maybe put token/size/pointer in order?
 				byteBuffer.putChar(token);
 				byteBuffer.putInt(currentPointer);
-				dictionary.put(currentPhrase + token, nextNewPointer);
-				reverseDictionary[nextNewPointer] = currentPhrase + token;
-				// System.out.printf("Storing: %s <%s_%s> [%s]=%s\n",
-				// currentPointer, currentPhrase, token, currentPhrase
-				// + token, nextNewPointer);
-
-				nextNewPointer++;
+				dictionary.put(currentPhrase + token, bufferPosition);
 				currentPhrase = "";
-				currentPointer = 0;
+				currentPointer = -1;
 
 			} else if (i + 1 == s.length()) {
 				// there was a dictionary match at the end of the string,
@@ -60,7 +70,7 @@ public class LZ78KnotStorage implements KnotStorage {
 				byteBuffer.putChar(token);
 				byteBuffer.putInt(currentPointer);
 				currentPhrase = "";
-				currentPointer = 0;
+				currentPointer = -1;
 
 			} else {
 				currentPhrase = currentPhrase + token;
@@ -68,19 +78,28 @@ public class LZ78KnotStorage implements KnotStorage {
 
 			}
 		}
-		return bufferPosition;
+		return startingBufferPosition;
 	}
 
 	@Override
 	public String lookup(int index) {
-		int sizeOfString = byteBuffer.getInt(index);
-		index += 4;
 		String result = "";
+		int sizeOfString = byteBuffer.getInt(index);
 		for (int i = 0; result.length() < sizeOfString; i++) {
-			char character = byteBuffer.getChar(index + (i * 6));
-			int pointer = byteBuffer.getInt(index + (i * 6) + 2);
-			// System.out.printf("Found: <%s> %s\n", character, pointer);
-			result += reverseDictionary[pointer] + character;
+			result += lookupInternal(index + 4 + (i * 6));
+		}
+
+		return result;
+
+	}
+
+	private String lookupInternal(int index) {
+		String result = "";
+		int pointer = index;
+		while (pointer > 0) {
+			char character = byteBuffer.getChar(pointer);
+			pointer = byteBuffer.getInt(pointer + 2);
+			result = character + result;
 		}
 		return result;
 	}
