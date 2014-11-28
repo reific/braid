@@ -4,6 +4,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -73,6 +76,29 @@ public class Lz78Test {
 		for (String s : list) {
 			Braid braid = Braids.newBraid(knot, new String(s));
 			assertEquals(s, braid.get());
+		}
+	}
+
+	@Test
+	public void testTextFile() throws Exception {
+
+		final Knot knot = Knots.lz78();
+		List<String> uncompressed = new ArrayList<String>();
+		List<Braid> compressed = new ArrayList<Braid>();
+
+		InputStream stream = this.getClass().getResourceAsStream("/hayek-road-to-serfdom.txt");
+
+		try (BufferedReader br = new BufferedReader(new InputStreamReader(stream))) {
+			for (String line; (line = br.readLine()) != null;) {
+				uncompressed.add(line);
+				compressed.add(Braids.newBraid(knot, line));
+			}
+		}
+		System.out.println(compressed.size());
+
+		assertEquals(uncompressed.size(), compressed.size());
+		for (int i = 0; i < uncompressed.size(); i++) {
+			assertEquals(uncompressed.get(i), compressed.get(i).get());
 		}
 	}
 

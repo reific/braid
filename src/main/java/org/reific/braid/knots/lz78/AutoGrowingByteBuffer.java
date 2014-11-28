@@ -43,15 +43,15 @@ public class AutoGrowingByteBuffer {
 
 	public void putInt(int value) {
 		growIfNeeded(4);
-		System.out.printf("putInt %s %s %s\n", current.capacity(),
-				current.position(), value);
+		// System.out.printf("putInt %s %s %s\n", current.capacity(),
+		// current.position(), value);
 		current.putInt(value);
 	}
 
 	public void putChar(char value) {
 		growIfNeeded(2);
-		System.out.printf("putChar %s %s %s\n", current.capacity(),
-				current.position(), value);
+		// System.out.printf("putChar %s %s %s\n", current.capacity(),
+		// current.position(), value);
 		current.putChar(value);
 	}
 

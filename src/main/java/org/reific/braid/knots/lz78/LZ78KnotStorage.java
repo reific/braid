@@ -14,7 +14,7 @@ public class LZ78KnotStorage implements KnotStorage {
 	private final AutoGrowingByteBuffer byteBuffer = new AutoGrowingByteBuffer(
 			INITIAL_BYTE_BUFFER_SIZE);
 	private final Map<String, Integer> dictionary = new HashMap<String, Integer>();
-	private final String[] reverseDictionary = new String[1000];
+	private final String[] reverseDictionary = new String[100000];
 	private int currentPointer = 0;
 	private int nextNewPointer;
 	private String currentPhrase;
@@ -43,9 +43,9 @@ public class LZ78KnotStorage implements KnotStorage {
 				byteBuffer.putInt(currentPointer);
 				dictionary.put(currentPhrase + token, nextNewPointer);
 				reverseDictionary[nextNewPointer] = currentPhrase + token;
-				System.out.printf("Storing: %s <%s_%s> [%s]=%s\n",
-						currentPointer, currentPhrase, token, currentPhrase
-								+ token, nextNewPointer);
+				// System.out.printf("Storing: %s <%s_%s> [%s]=%s\n",
+				// currentPointer, currentPhrase, token, currentPhrase
+				// + token, nextNewPointer);
 
 				nextNewPointer++;
 				currentPhrase = "";
@@ -79,7 +79,7 @@ public class LZ78KnotStorage implements KnotStorage {
 		for (int i = 0; result.length() < sizeOfString; i++) {
 			char character = byteBuffer.getChar(index + (i * 6));
 			int pointer = byteBuffer.getInt(index + (i * 6) + 2);
-			System.out.printf("Found: <%s> %s\n", character, pointer);
+			// System.out.printf("Found: <%s> %s\n", character, pointer);
 			result += reverseDictionary[pointer] + character;
 		}
 		return result;
