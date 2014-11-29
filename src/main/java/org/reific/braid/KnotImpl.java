@@ -17,4 +17,9 @@ public class KnotImpl implements Knot, InternalKnot {
 		return knotStorage.lookup(index);
 	}
 
+	@Override
+	public int getCompressedSize() {
+		return knotStorage.getCompressedSize();
+	}
+
 }
