@@ -58,13 +58,15 @@ class AutoGrowingByteBuffer {
 
 	public void putVInt(int value) {
 		growIfNeeded(5);
-		//System.out.printf("putInt  %3.3s %3.3s %3.3s\n", current.capacity(), current.position(), value);
+		//System.out.printf("putInt  %4s %4s %4s\n", current.capacity(),
+		//		totalSizeOfPreviousBuffers + current.position(), value);
 		writeVInt(value, current);
 	}
 
 	public void putByte(byte value) {
 		growIfNeeded(1);
-		//System.out.printf("putChar %3.3s %3.3s %3.3s\n", current.capacity(), current.position(), (char) value);
+		//System.out.printf("putByte %4s %4s %4s\n", current.capacity(),
+		//		totalSizeOfPreviousBuffers + current.position(), (char) value);
 		current.put(value);
 	}
 

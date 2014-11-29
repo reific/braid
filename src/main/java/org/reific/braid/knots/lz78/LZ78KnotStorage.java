@@ -19,12 +19,8 @@
 package org.reific.braid.knots.lz78;
 
 import gnu.trove.impl.Constants;
-import gnu.trove.map.TObjectIntMap;
-import gnu.trove.map.hash.TObjectIntHashMap;
 
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.reific.braid.KnotStorage;
 import org.reific.braid.knots.lz78.AutoGrowingByteBuffer.VInt;
@@ -85,7 +81,7 @@ public class LZ78KnotStorage implements KnotStorage {
 	private static final int INITIAL_DICTIONARY_SIZE = 128;
 	private static final float DICTIONARY_LOAD_FACTOR = Constants.DEFAULT_LOAD_FACTOR;
 	private final AutoGrowingByteBuffer byteBuffer = new AutoGrowingByteBuffer(INITIAL_BYTE_BUFFER_SIZE);
-	private final TObjectIntMap<String> dictionary = new TObjectIntHashMap<String>(INITIAL_DICTIONARY_SIZE,
+	private final LZ78Dictionary dictionary = new LZ78Dictionary(INITIAL_DICTIONARY_SIZE,
 			DICTIONARY_LOAD_FACTOR, -2);
 
 	public LZ78KnotStorage() {
@@ -103,9 +99,10 @@ public class LZ78KnotStorage implements KnotStorage {
 
 		byte[] stringBytes = string.getBytes(STRING_CHARSET);
 		int stringLength = stringBytes.length;
-		List<Byte> currentPhrase = new ArrayList<Byte>();
+		byte[] currentPhrase1 = new byte[stringLength];
+		int currentPhraseLength = 0;
 		// 0 is used as the terminating code instead of -1, since storing negative numbers in VInt form would be expensive. 
-		// This doesn't affect the external int braid location pointers of the indexes into the byteBuffer. 
+		// This doesn't affect the external int braid location pointers or the indexes into the byteBuffer. 
 		// Zero is still a valid location (which will contain the length of the first record)
 		int currentPointer = 0;
 
@@ -114,23 +111,25 @@ public class LZ78KnotStorage implements KnotStorage {
 		for (int i = 0; i < stringLength; i++) {
 			int bufferPosition = byteBuffer.nextWritePosition();
 			byte token = stringBytes[i];
-			currentPhrase.add(token);
-			Integer pointer = dictionary.get(currentPhrase.toString());
+			currentPhrase1[currentPhraseLength++] = token;
+			int pointer = dictionary.get(currentPhrase1, currentPhraseLength);
 
 			if (pointer == -2) {
 				// not found in dictionary. Add to dictionary and compressed
 				// stream and start over
 				byteBuffer.putByte(token);
 				byteBuffer.putVInt(currentPointer);
-				dictionary.put(currentPhrase.toString(), bufferPosition);
-				currentPhrase = new ArrayList<Byte>();
+				dictionary.put(currentPhrase1, currentPhraseLength, bufferPosition);
+				currentPhrase1 = new byte[stringLength];
+				currentPhraseLength = 0;
 				currentPointer = 0;
 			} else if (i == stringLength - 1) {
 				// found in dictionary, but at the end of the input string.
 				// Add to the output stream
 				byteBuffer.putByte(token);
 				byteBuffer.putVInt(currentPointer);
-				currentPhrase = new ArrayList<Byte>();
+				currentPhrase1 = new byte[stringLength];
+				currentPhraseLength = 0;
 				currentPointer = 0;
 			} else {
 				// found in dictionary. keep parsing to match a longer
@@ -144,14 +143,13 @@ public class LZ78KnotStorage implements KnotStorage {
 	@Override
 	public String lookup(int index) {
 		VInt sizeOfString = byteBuffer.getVInt(index);
-		//StringBuilder result = new StringBuilder(sizeOfString.value);
 		byte[] result = new byte[sizeOfString.value];
+		byte[] innerResult = new byte[sizeOfString.value];
 		int resultCount = 0;
 		index = index + sizeOfString.numBytes;
 		// walk forward over the current string
 		while (resultCount < sizeOfString.value) {
-			//String result2 = "";
-			List<Byte> foobar = new ArrayList<Byte>();
+			int innerResultCount = 0;
 			int pointer = index;
 			// follow the pointer backwards to find tokens
 			while (pointer > 0) {
@@ -163,13 +161,11 @@ public class LZ78KnotStorage implements KnotStorage {
 					index += nexVInt.numBytes;
 				}
 				pointer = nexVInt.value;
-				foobar.add(0, character);
-				//result2 = character + result2;
+				innerResult[innerResultCount++] = character;
 			}
-			for (Byte b : foobar) {
-				result[resultCount++] = b;
+			for (int i = innerResultCount - 1; i >= 0; i--) {
+				result[resultCount++] = innerResult[i];
 			}
-			//result.append(result2);
 		}
 		return new String(result, STRING_CHARSET);
 	}

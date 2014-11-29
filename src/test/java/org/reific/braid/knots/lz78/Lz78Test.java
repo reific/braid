@@ -139,22 +139,49 @@ public class Lz78Test {
 		int uncompressedSizeUtf8 = 0;
 		int uncompressedSizeUtf16 = 0;
 
-		for (int i = 0; i < 2000; i++) {
-			String line = "hello there world";
+		for (int i = 0; i < 10000; i++) {
+			String line = "Science is the great antidote to the poison of enthusiasm and superstition.";
 
 			uncompressedSizeUtf8 += line.getBytes(StandardCharsets.UTF_8).length;
 			uncompressedSizeUtf16 += line.getBytes(StandardCharsets.UTF_16).length;
 			Braids.newBraid(knot, line);
 		}
 
-		System.out.println("Compressed size (% of utf8 string):" + knot.getCompressedSize()
+		System.out.println("testCompressionRatio Compressed size (% of utf8 string):" + knot.getCompressedSize()
 				/ (double) uncompressedSizeUtf8);
-		System.out.println("Compressed size (% of utf16 string):" + knot.getCompressedSize()
+		System.out.println("testCompressionRatio Compressed size (% of utf16 string):" + knot.getCompressedSize()
 				/ (double) uncompressedSizeUtf16);
 
-		//TODO: this should be better. last character is never being compressed
-		assertThat((double) knot.getCompressedSize(), lessThan(uncompressedSizeUtf8 * 0.3));
-		assertThat((double) knot.getCompressedSize(), lessThan(uncompressedSizeUtf16 * 0.15));
+		assertThat((double) knot.getCompressedSize(), lessThan(uncompressedSizeUtf8 * 0.08));
+		assertThat((double) knot.getCompressedSize(), lessThan(uncompressedSizeUtf16 * 0.04));
+	}
+
+	@Test
+	public void testCompressionRatioVerySmallStrings() throws Exception {
+
+		final Knot knot = Knots.lz78();
+		int uncompressedSizeUtf8 = 0;
+		int uncompressedSizeUtf16 = 0;
+
+		for (int i = 0; i < 10000; i++) {
+			String line = "Hi.";
+
+			uncompressedSizeUtf8 += line.getBytes(StandardCharsets.UTF_8).length;
+			uncompressedSizeUtf16 += line.getBytes(StandardCharsets.UTF_16).length;
+			Braids.newBraid(knot, line);
+		}
+
+		System.out.println("testCompressionRatioVerySmallStrings Compressed size (% of utf8 string):"
+				+ knot.getCompressedSize()
+				/ (double) uncompressedSizeUtf8);
+		System.out.println("testCompressionRatioVerySmallStrings Compressed size (% of utf16 string):"
+				+ knot.getCompressedSize()
+				/ (double) uncompressedSizeUtf16);
+
+		//TODO: fix small string compression.
+		// LZ78KnotStorage currently uses a minimum of 3 bytes for any string (size+lastCharacter+pointer).
+		//assertThat((double) knot.getCompressedSize(), lessThan(uncompressedSizeUtf8 * 0.08));
+		//assertThat((double) knot.getCompressedSize(), lessThan(uncompressedSizeUtf16 * 0.04));
 	}
 
 	@Test
