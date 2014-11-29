@@ -8,7 +8,10 @@ import java.util.List;
 
 class AutoGrowingByteBuffer {
 
-	private static final float GROWTH_FACTOR = 1.25f;
+	// When an underlying buffer fills, an additional buffer GROWTH_FACTOR times the
+	// size of the previous one is added to the pool. This must be at least one, or
+	// growth will eventually stop.
+	private static final float GROWTH_FACTOR = 1.5f;
 	// Must be at least as big as the largest primitive (5 byte VInt)
 	private static final int MIN_SIZE = 64;
 
@@ -59,10 +62,10 @@ class AutoGrowingByteBuffer {
 		writeVInt(value, current);
 	}
 
-	public void putChar(char value) {
-		growIfNeeded(2);
-		//System.out.printf("putChar %3.3s %3.3s %3.3s\n", current.capacity(), current.position(), value);
-		current.putChar(value);
+	public void putByte(byte value) {
+		growIfNeeded(1);
+		//System.out.printf("putChar %3.3s %3.3s %3.3s\n", current.capacity(), current.position(), (char) value);
+		current.put(value);
 	}
 
 	public VInt getVInt(int logicalIndex) {
@@ -70,9 +73,9 @@ class AutoGrowingByteBuffer {
 		return readVInt(physicalIndex.index, physicalIndex.buffer);
 	}
 
-	public char getChar(int logicalIndex) {
+	public byte getByte(int logicalIndex) {
 		PhysicalIndex physicalIndex = calculatePhysicalIndex(logicalIndex);
-		return physicalIndex.buffer.getChar(physicalIndex.index);
+		return physicalIndex.buffer.get(physicalIndex.index);
 	}
 
 	private PhysicalIndex calculatePhysicalIndex(int logicalIndex) {

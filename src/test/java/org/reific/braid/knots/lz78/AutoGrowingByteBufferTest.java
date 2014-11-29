@@ -13,19 +13,19 @@ public class AutoGrowingByteBufferTest {
 		assertEquals(0, buffer.nextWritePosition());
 		buffer.putVInt(99);
 		assertEquals(1, buffer.nextWritePosition());
-		buffer.putChar('a');
+		buffer.putByte((byte) 'a');
+		assertEquals(2, buffer.nextWritePosition());
+		buffer.putByte((byte) 'b');
 		assertEquals(3, buffer.nextWritePosition());
-		buffer.putChar('b');
-		assertEquals(5, buffer.nextWritePosition());
-		buffer.putChar('c');
-		assertEquals(7, buffer.nextWritePosition());
-		buffer.putChar('d');
+		buffer.putByte((byte) 'c');
+		assertEquals(4, buffer.nextWritePosition());
+		buffer.putByte((byte) 'd');
 
 		assertEquals(99, buffer.getVInt(0).value);
-		assertEquals('a', buffer.getChar(1));
-		assertEquals('b', buffer.getChar(3));
-		assertEquals('c', buffer.getChar(5));
-		assertEquals('d', buffer.getChar(7));
+		assertEquals('a', buffer.getByte(1));
+		assertEquals('b', buffer.getByte(2));
+		assertEquals('c', buffer.getByte(3));
+		assertEquals('d', buffer.getByte(4));
 
 	}
 	@Test
@@ -36,10 +36,10 @@ public class AutoGrowingByteBufferTest {
 		assertEquals(1, buffer.nextWritePosition());
 		buffer.putVInt(2);
 		assertEquals(2, buffer.nextWritePosition());
-		buffer.putChar('a');
-		buffer.putChar('b');
-		buffer.putChar('c');
-		assertEquals(8, buffer.nextWritePosition());
+		buffer.putByte((byte) 'a');
+		buffer.putByte((byte) 'b');
+		buffer.putByte((byte) 'c');
+		assertEquals(5, buffer.nextWritePosition());
 	}
 
 	@Test

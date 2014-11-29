@@ -54,6 +54,30 @@ public class Lz78Test {
 	}
 
 	@Test
+	public void testMultibyteUnicode() throws Exception {
+		final Knot knot = Knots.lz78();
+
+		// $ Single byte in UTF-8
+		String string = new String("\u0024");
+		Braid braid = Braids.newBraid(knot, string);
+		assertEquals("$", braid.get());
+		// ¢ (cent) 2-byte in UTF-8 
+		string = new String("\u00A2");
+		braid = Braids.newBraid(knot, string);
+		assertEquals("\u00A2", braid.get());
+
+		//€ (euro) 3-byte in UTF-8
+		string = new String("\u20AC");
+		braid = Braids.newBraid(knot, string);
+		assertEquals("\u20AC", braid.get());
+
+		// 4 byte in UTF-8
+		string = new String("\u24B62");
+		braid = Braids.newBraid(knot, string);
+		assertEquals("\u24B62", braid.get());
+	}
+
+	@Test
 	public void testNullString() throws Exception {
 		final Knot knot = Knots.lz78();
 		Braid braid = Braids.newBraid(knot, null);
@@ -85,31 +109,84 @@ public class Lz78Test {
 	}
 
 	@Test
+	/**
+	 * 
+	 */
 	public void testTextFile() throws Exception {
 
 		final Knot knot = Knots.lz78();
 		List<String> uncompressed = new ArrayList<String>();
 		List<Braid> compressed = new ArrayList<Braid>();
-		int uncompressedSize = 0;
 
-		for (int i = 0; i < 5; i++) {
 		InputStream stream = this.getClass().getResourceAsStream("/hayek-road-to-serfdom.txt");
 
 		try (BufferedReader br = new BufferedReader(new InputStreamReader(stream))) {
 			for (String line; (line = br.readLine()) != null;) {
-				//TODO: the compressed size should really be less than the UTF-8 representation
-				uncompressedSize += line.getBytes(StandardCharsets.UTF_16).length;
 				uncompressed.add(line);
 				compressed.add(Braids.newBraid(knot, line));
 			}
 		}
-		}
-		assertThat(knot.getCompressedSize(), lessThan(uncompressedSize));
-		//System.out.println("Compressed size (%): knot.getCompressedSize() / (double) uncompressedSize);
 		assertEquals(uncompressed.size(), compressed.size());
 		for (int i = 0; i < uncompressed.size(); i++) {
 			assertEquals(uncompressed.get(i), compressed.get(i).get());
 		}
+	}
+
+	@Test
+	public void testCompressionRatio() throws Exception {
+
+		final Knot knot = Knots.lz78();
+		int uncompressedSizeUtf8 = 0;
+		int uncompressedSizeUtf16 = 0;
+
+		for (int i = 0; i < 2000; i++) {
+			String line = "hello there world";
+
+			uncompressedSizeUtf8 += line.getBytes(StandardCharsets.UTF_8).length;
+			uncompressedSizeUtf16 += line.getBytes(StandardCharsets.UTF_16).length;
+			Braids.newBraid(knot, line);
+		}
+
+		System.out.println("Compressed size (% of utf8 string):" + knot.getCompressedSize()
+				/ (double) uncompressedSizeUtf8);
+		System.out.println("Compressed size (% of utf16 string):" + knot.getCompressedSize()
+				/ (double) uncompressedSizeUtf16);
+
+		//TODO: this should be better. last character is never being compressed
+		assertThat((double) knot.getCompressedSize(), lessThan(uncompressedSizeUtf8 * 0.3));
+		assertThat((double) knot.getCompressedSize(), lessThan(uncompressedSizeUtf16 * 0.15));
+	}
+
+	@Test
+	/**
+	 * 
+	 */
+	public void testCompressionRatioReadingFile() throws Exception {
+
+		final Knot knot = Knots.lz78();
+		int uncompressedSizeUtf8 = 0;
+		int uncompressedSizeUtf16 = 0;
+
+		InputStream stream = this.getClass().getResourceAsStream("/hayek-road-to-serfdom-100-lines.txt");
+
+		try (BufferedReader br = new BufferedReader(new InputStreamReader(stream))) {
+			for (String line; (line = br.readLine()) != null;) {
+				//loop same data multiple times to test highly compressible data
+				for (int j = 0; j < 100; j++) {
+					uncompressedSizeUtf8 += line.getBytes(StandardCharsets.UTF_8).length;
+					uncompressedSizeUtf16 += line.getBytes(StandardCharsets.UTF_16).length;
+					Braids.newBraid(knot, line);
+				}
+			}
+		}
+
+		System.out.println("Compressed size (% of utf8 string):" + knot.getCompressedSize()
+				/ (double) uncompressedSizeUtf8);
+		System.out.println("Compressed size (% of utf16 string):" + knot.getCompressedSize()
+				/ (double) uncompressedSizeUtf16);
+
+		assertThat((double) knot.getCompressedSize(), lessThan(uncompressedSizeUtf8 * 0.3));
+		assertThat((double) knot.getCompressedSize(), lessThan(uncompressedSizeUtf16 * 0.15));
 	}
 
 }
