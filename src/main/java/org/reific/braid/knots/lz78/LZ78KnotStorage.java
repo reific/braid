@@ -22,8 +22,9 @@ import gnu.trove.impl.Constants;
 
 import java.nio.charset.Charset;
 
+import org.reific.braid.Buffer;
 import org.reific.braid.KnotStorage;
-import org.reific.braid.knots.lz78.AutoGrowingByteBuffer.VInt;
+import org.reific.braid.VInt;
 
 /**
  * (With VInt) Example of storing: this that the other
@@ -77,15 +78,15 @@ import org.reific.braid.knots.lz78.AutoGrowingByteBuffer.VInt;
 public class LZ78KnotStorage implements KnotStorage {
 
 	private static final Charset STRING_CHARSET = Charset.forName("UTF-8");
-	private static final int INITIAL_BYTE_BUFFER_SIZE = 128;
+
 	private static final int INITIAL_DICTIONARY_SIZE = 128;
 	private static final float DICTIONARY_LOAD_FACTOR = Constants.DEFAULT_LOAD_FACTOR;
-	private final AutoGrowingByteBuffer byteBuffer = new AutoGrowingByteBuffer(INITIAL_BYTE_BUFFER_SIZE);
+	private final Buffer byteBuffer;
 	private final LZ78Dictionary dictionary = new LZ78Dictionary(INITIAL_DICTIONARY_SIZE,
 			DICTIONARY_LOAD_FACTOR, -2);
 
-	public LZ78KnotStorage() {
-
+	public LZ78KnotStorage(Buffer buffer) {
+		this.byteBuffer = buffer;
 	}
 
 	@Override

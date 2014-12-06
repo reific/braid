@@ -1,6 +1,6 @@
 package org.reific.braid;
 
-public interface InternalKnot {
-	public int addString(CharSequence string);
+interface InternalKnot {
+	public int addString(String string);
 	public String lookupString(int index);
 }

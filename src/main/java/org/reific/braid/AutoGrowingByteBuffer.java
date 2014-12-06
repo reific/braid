@@ -1,4 +1,4 @@
-package org.reific.braid.knots.lz78;
+package org.reific.braid;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -6,15 +6,17 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-class AutoGrowingByteBuffer {
+class AutoGrowingByteBuffer implements Buffer {
 
 	// When an underlying buffer fills, an additional buffer GROWTH_FACTOR times the
 	// size of the previous one is added to the pool. This must be at least one, or
 	// growth will eventually stop.
-	private static final float GROWTH_FACTOR = 1.5f;
+	private static final float MIN_GROWTH_FACTOR = 1.0f;
 	// Must be at least as big as the largest primitive (5 byte VInt)
-	private static final int MIN_SIZE = 64;
+	private static final int MIN_SIZE = 5;
 
+	private final float growthFactor;
+	private final boolean direct;
 	// ordered list of ByteBuffers of increasing size.
 	// data[n+1].length = floor(GROWTH_FACTOR * data[n].length)
 	private final List<ByteBuffer> data = new ArrayList<ByteBuffer>();
@@ -22,8 +24,8 @@ class AutoGrowingByteBuffer {
 	private int totalSizeOfPreviousBuffers = 0;
 
 	private class PhysicalIndex {
-		int index;
-		ByteBuffer buffer;
+		final int index;
+		final ByteBuffer buffer;
 
 		public PhysicalIndex(int index, ByteBuffer buffer) {
 			this.index = index;
@@ -31,14 +33,25 @@ class AutoGrowingByteBuffer {
 		}
 	}
 
-	public AutoGrowingByteBuffer(int initialSize) {
-		if (initialSize < MIN_SIZE) {
-			initialSize = MIN_SIZE;
+	public AutoGrowingByteBuffer(int initialCapacity, float growthFactor, boolean direct) {
+		if (initialCapacity < MIN_SIZE) {
+			initialCapacity = MIN_SIZE;
 		}
-		current = ByteBuffer.allocate(initialSize);
+		this.growthFactor = growthFactor < MIN_GROWTH_FACTOR ? MIN_GROWTH_FACTOR : growthFactor;
+		this.direct = direct;
+		current = allocate(initialCapacity < MIN_SIZE ? MIN_SIZE : initialCapacity);
 		data.add(current);
 	}
 
+	private ByteBuffer allocate(int capacity) {
+		if (direct) {
+			return ByteBuffer.allocateDirect(capacity);
+		} else {
+			return ByteBuffer.allocate(capacity);
+		}
+	}
+
+	@Override
 	public int getSize() {
 		int size = 0;
 		for (ByteBuffer byteBuffer : data) {
@@ -52,10 +65,12 @@ class AutoGrowingByteBuffer {
 	 * @return a logical byte position where the start of the next record will
 	 *         start
 	 */
+	@Override
 	public int nextWritePosition() {
 		return totalSizeOfPreviousBuffers + current.position();
 	}
 
+	@Override
 	public void putVInt(int value) {
 		growIfNeeded(5);
 		//System.out.printf("putInt  %4s %4s %4s\n", current.capacity(),
@@ -63,6 +78,7 @@ class AutoGrowingByteBuffer {
 		writeVInt(value, current);
 	}
 
+	@Override
 	public void putByte(byte value) {
 		growIfNeeded(1);
 		//System.out.printf("putByte %4s %4s %4s\n", current.capacity(),
@@ -70,11 +86,13 @@ class AutoGrowingByteBuffer {
 		current.put(value);
 	}
 
+	@Override
 	public VInt getVInt(int logicalIndex) {
 		PhysicalIndex physicalIndex = calculatePhysicalIndex(logicalIndex);
 		return readVInt(physicalIndex.index, physicalIndex.buffer);
 	}
 
+	@Override
 	public byte getByte(int logicalIndex) {
 		PhysicalIndex physicalIndex = calculatePhysicalIndex(logicalIndex);
 		return physicalIndex.buffer.get(physicalIndex.index);
@@ -93,19 +111,9 @@ class AutoGrowingByteBuffer {
 	private void growIfNeeded(int neededSpace) {
 		if (current.position() + neededSpace > current.capacity()) {
 			totalSizeOfPreviousBuffers += current.position();
-			current = ByteBuffer.allocate((int) (current.capacity() * GROWTH_FACTOR));
+			current = allocate((int) (current.capacity() * growthFactor));
 			data.add(current);
 
-		}
-	}
-
-	static class VInt {
-		public final int value;
-		public final int numBytes;
-
-		public VInt(int numBytes, int value) {
-			this.numBytes = numBytes;
-			this.value = value;
 		}
 	}
 
@@ -219,16 +227,12 @@ class AutoGrowingByteBuffer {
 	 * @return 
 	   * @see DataInput#readVInt()
 	   */
-	private static int writeVInt(int i, ByteBuffer buffer) {
-		int bytesWritten = 0;
+	private static void writeVInt(int i, ByteBuffer buffer) {
 		while ((i & ~0x7F) != 0) {
 			buffer.put((byte) ((i & 0x7F) | 0x80));
-			bytesWritten++;
 			i >>>= 7;
 		}
 		buffer.put((byte) i);
-		bytesWritten++;
-		return bytesWritten;
 	}
 
 	/** 

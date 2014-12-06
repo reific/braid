@@ -21,10 +21,7 @@ package org.reific.braid.knots.lz78;
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
 
-/**
- *
- */
-public class LZ78Dictionary {
+class LZ78Dictionary {
 
 	TObjectIntMap<Key> dictionary;
 
@@ -32,7 +29,7 @@ public class LZ78Dictionary {
 	 * HashMap key wrapper for byte[]. Only the specified length is considered for hashCode/Equals so that
 	 * arrays can be reused by clients for sub-arrays.
 	 */
-	static class Key {
+	private static class Key {
 
 		final byte[] currentPhrase;
 		final private int length;

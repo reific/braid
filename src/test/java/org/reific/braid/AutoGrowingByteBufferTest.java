@@ -1,4 +1,4 @@
-package org.reific.braid.knots.lz78;
+package org.reific.braid;
 
 import static org.junit.Assert.assertEquals;
 
@@ -9,7 +9,7 @@ public class AutoGrowingByteBufferTest {
 	@Test
 	public void testSmallInitialSize() throws Exception {
 		// Actual size will be MIN_SIZE
-		AutoGrowingByteBuffer buffer = new AutoGrowingByteBuffer(1);
+		Buffer buffer = new AutoGrowingByteBuffer(1, 1.5f, false);
 		assertEquals(0, buffer.nextWritePosition());
 		buffer.putVInt(99);
 		assertEquals(1, buffer.nextWritePosition());
@@ -29,8 +29,17 @@ public class AutoGrowingByteBufferTest {
 
 	}
 	@Test
+	public void testDirect() throws Exception {
+		Buffer buffer = new AutoGrowingByteBuffer(8, 1.5f, true);
+		assertEquals(0, buffer.nextWritePosition());
+		buffer.putVInt(1);
+		assertEquals(1, buffer.nextWritePosition());
+		assertEquals(1, buffer.getVInt(0).value);
+	}
+
+	@Test
 	public void testSingleFullBuffer() throws Exception {
-		AutoGrowingByteBuffer buffer = new AutoGrowingByteBuffer(8);
+		Buffer buffer = new AutoGrowingByteBuffer(8, 1.5f, false);
 		assertEquals(0, buffer.nextWritePosition());
 		buffer.putVInt(1);
 		assertEquals(1, buffer.nextWritePosition());
@@ -44,7 +53,7 @@ public class AutoGrowingByteBufferTest {
 
 	@Test
 	public void testGrowing() throws Exception {
-		AutoGrowingByteBuffer buffer = new AutoGrowingByteBuffer(5);
+		Buffer buffer = new AutoGrowingByteBuffer(5, 1.5f, false);
 		assertEquals(0, buffer.nextWritePosition());
 		// put 1 varInt
 		buffer.putVInt(1);
