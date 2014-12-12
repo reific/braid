@@ -5,8 +5,6 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
-import org.reific.braid.knots.lz78.LZ78KnotStorage;
-
 public class Knots {
 
 	private static final int DEFAULT_BYTE_BUFFER_SIZE = 128;

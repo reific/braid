@@ -16,7 +16,11 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.reific.braid;
+package org.reific.braid.apitest;
+
+import org.reific.braid.Braid;
+import org.reific.braid.Knot;
+import org.reific.braid.Knots;
 
 public class ExamplesTest {
 

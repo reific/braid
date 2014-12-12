@@ -1,17 +1,19 @@
 package org.reific.braid;
 
 interface MutableInternalKnot {
+	/**
+	 * Represents the result of setting the String value of the MutableBraid
+	 */
 	static class Result {
-		public final int index;
-		public final MutableInternalKnot knot;
+		final int index;
+		final MutableInternalKnot knot;
 
-		public Result(int index, MutableInternalKnot knot) {
-
+		Result(int index, MutableInternalKnot knot) {
 			this.knot = knot;
 			this.index = index;
 		}
 	}
 
-	public Result addString(String string);
-	public String lookupString(int index);
+	Result addString(String string);
+	String lookupString(int index);
 }

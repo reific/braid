@@ -18,30 +18,25 @@
  */
 package org.reific.braid;
 
+import java.util.Objects;
 
-final class InternedBraid implements Braid {
-
-	private final String string;
-
-	InternedBraid(String string) {
-		this.string = string;
-	}
-	@Override
-	public String get() {
-		return string;
-	}
-
-	@Override
-	public int hashCode() {
-		if (string == null) {
-			return SET_TO_NULL_HASH;
+final class BraidUtil {
+	static boolean equals(Braid braid, Object otherPossibleBraid) {
+		if (braid == otherPossibleBraid) {
+			return true;
 		}
-		return string.hashCode();
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		return BraidUtil.equals(this, obj);
+		if (braid == null || otherPossibleBraid == null) {
+			return false;
+		}
+		if (otherPossibleBraid instanceof Braid) {
+			Braid anotherBraid = (Braid) otherPossibleBraid;
+			if (braid.hashCode() != anotherBraid.hashCode()) {
+				return false;
+			}
+			// Only if the hashcodes are equal do we de-compress the braids and compare the strings.
+			return Objects.equals(braid.get(), anotherBraid.get());
+		}
+		return false;
 	}
 
 }

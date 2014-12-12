@@ -37,12 +37,42 @@ class KnotImpl implements Knot, InternalKnot {
 		public String get() {
 			return null;
 		}
+
+		@Override
+		public int hashCode() {
+			return SET_TO_NULL_HASH;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			return BraidUtil.equals(this, obj);
+		}
+	};
+	private static final Braid EMPTY_STRING_BRAID = new Braid() {
+
+		@Override
+		public String get() {
+			return "";
+		}
+
+		@Override
+		public int hashCode() {
+			return "".hashCode();
+		};
+
+		@Override
+		public boolean equals(Object obj) {
+			return BraidUtil.equals(this, obj);
+		}
 	};
 
 	@Override
 	public Braid braid(String string) {
 		if (string == null) {
 			return NULL_BRAID;
+		}
+		if (string.equals("")) {
+			return EMPTY_STRING_BRAID;
 		}
 		Braid possibleInternMatch = interners.attemptToIntern(string);
 		if (possibleInternMatch != null) {

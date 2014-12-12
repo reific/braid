@@ -16,15 +16,11 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.reific.braid.knots.lz78;
+package org.reific.braid;
 
 import gnu.trove.impl.Constants;
 
 import java.nio.charset.Charset;
-
-import org.reific.braid.Buffer;
-import org.reific.braid.KnotStorage;
-import org.reific.braid.VInt;
 
 /**
  * (With VInt) Example of storing: this that the other
@@ -75,7 +71,7 @@ import org.reific.braid.VInt;
  * <p>
  * 
  */
-public class LZ78KnotStorage implements KnotStorage {
+class LZ78KnotStorage implements KnotStorage {
 
 	private static final Charset STRING_CHARSET = Charset.forName("UTF-8");
 

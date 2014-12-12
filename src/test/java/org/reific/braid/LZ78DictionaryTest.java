@@ -16,12 +16,13 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.reific.braid.knots.lz78;
+package org.reific.braid;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 import org.junit.Test;
+import org.reific.braid.LZ78Dictionary;
 
 public class LZ78DictionaryTest {
 

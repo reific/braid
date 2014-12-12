@@ -50,6 +50,9 @@ package org.reific.braid;
  */
 public interface Braid {
 
+	// All Braid implementations must return this hashcode if their String value is null
+	static final int SET_TO_NULL_HASH = 0;
+
 	/**
 	 * 
 	 * @return the {@link String} data that is encoded in this {@link Braid}.

@@ -18,7 +18,7 @@
  */
 package org.reific.braid;
 
-public final class VInt {
+final class VInt {
 	public final int value;
 	public final int numBytes;
 

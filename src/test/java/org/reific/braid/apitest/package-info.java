@@ -16,32 +16,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.reific.braid;
-
-
-final class InternedBraid implements Braid {
-
-	private final String string;
-
-	InternedBraid(String string) {
-		this.string = string;
-	}
-	@Override
-	public String get() {
-		return string;
-	}
-
-	@Override
-	public int hashCode() {
-		if (string == null) {
-			return SET_TO_NULL_HASH;
-		}
-		return string.hashCode();
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		return BraidUtil.equals(this, obj);
-	}
-
-}
+/**
+ * 
+ */
+package org.reific.braid.apitest;

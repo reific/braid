@@ -1,4 +1,4 @@
-package org.reific.braid.knots.lz78;
+package org.reific.braid;
 
 import static org.hamcrest.Matchers.theInstance;
 import static org.junit.Assert.assertEquals;
