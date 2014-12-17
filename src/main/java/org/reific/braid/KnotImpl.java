@@ -5,11 +5,11 @@ import java.util.List;
 class KnotImpl implements Knot, InternalKnot {
 
 	private final KnotStorage knotStorage;
-	private final Interners interners;
+	private final Interner interners;
 	private final Rememberer rememberers;
 	private final MutableBraidKnotWrapper mutableBraidKnotWrapper;
 	
-	KnotImpl(Interners interners, KnotStorage knotStorage, Rememberer rememberer,
+	KnotImpl(Interner interners, KnotStorage knotStorage, Rememberer rememberer,
  List<MutableInterner> mutableInterners) {
 		this.interners = interners;
 		this.knotStorage = knotStorage;

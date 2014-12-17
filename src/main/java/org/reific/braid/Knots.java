@@ -10,7 +10,16 @@ public class Knots {
 	private static final int DEFAULT_BYTE_BUFFER_SIZE = 128;
 	private static final float DEFAULT_GROWTH_FACTOR = 1.5f;
 
+	private Knots() {
+	}
+
 	public interface KnotBuilder {
+		/**
+		 * Specify a list of Strings that are expected to be frequently stored in the resulting Knot. The precise behavior of how the
+		 * Knot will make use of this information is not specified, however, in general, it is likely that a request for {@link Braid}s of
+		 * these values will return a constant {@link Braid} wrapper of the {@link String}, which should reduce memory and cpu usage, 
+		 * as no (de-)compression will be required.
+		 */
 		KnotBuilder common(String commonString, String... moreCommonStrings);
 		KnotBuilder lz78(int initialBufferSize, float bufferGrowthFactor);
 		KnotBuilder rememberLast(int num);
