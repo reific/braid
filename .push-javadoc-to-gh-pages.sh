@@ -1,5 +1,5 @@
 #!/bin/bash
-
+echo -e "Checking to see if Javadoc needs to be published...\n"
 if [ "$TRAVIS_REPO_SLUG" == "reific/braid" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ] && [ "$TRAVIS_BRANCH" == "master" ]; then
 
   echo -e "Publishing javadoc...\n"
