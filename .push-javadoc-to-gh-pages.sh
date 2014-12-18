@@ -4,7 +4,7 @@ if [ "$TRAVIS_REPO_SLUG" == "reific/braid" ] && [ "$TRAVIS_PULL_REQUEST" == "fal
 
   echo -e "Publishing javadoc...\n"
 
-  cp -R target/site $HOME/javadoc-latest
+  cp -R braid/target/site $HOME/javadoc-latest
 
   cd $HOME
   git config --global user.email "travis@travis-ci.org"
