@@ -33,7 +33,8 @@ package org.reific.braid;
  *
  * <pre class="code">
  * <code class="java">
- * Knot knot = Knots.example();
+ * Knot knot = Knots.builder().build();
+ * // get a String from, for example, a database 
  * String string = new String("test");
  * Braid braid = Braids.newExampleBraid(knot, string);
  * assertEquals(string,braid.get());
