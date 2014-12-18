@@ -75,13 +75,17 @@ public class Knots {
 
 			List<MutableInterner> mutableInterners = new ArrayList<MutableInterner>();
 			List<Interner> internerList = new ArrayList<Interner>(1);
-			if (!commonStrings.isEmpty()){
+			if (commonStrings.size() == 1) {
+				internerList.add(new CommonStringInternerWithOne(commonStrings.iterator().next()));
+				mutableInterners.add(new MutableCommonStringInterner(commonStrings));
+			}
+			else if (!commonStrings.isEmpty()) {
 				internerList.add(new CommonStringInterner(commonStrings));
 				mutableInterners.add(new MutableCommonStringInterner(commonStrings));
 			}
 			Interners interners = new Interners(internerList);
 
-			List<Rememberer> remembererList = new ArrayList<Rememberer>();
+			List<Rememberer> remembererList = new ArrayList<Rememberer>(1);
 			if (rememberLast == 1) {
 				remembererList.add(new LastOneStringRemember());
 			}

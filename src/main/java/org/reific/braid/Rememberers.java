@@ -18,12 +18,11 @@
  */
 package org.reific.braid;
 
-import java.util.ArrayList;
 import java.util.List;
 
 class Rememberers implements Rememberer {
 
-	private List<Rememberer> rememberers = new ArrayList<Rememberer>();
+	private final List<Rememberer> rememberers;
 
 	public Rememberers(List<Rememberer> remembererList) {
 		//TODO copy?

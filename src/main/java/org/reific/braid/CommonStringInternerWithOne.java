@@ -18,22 +18,25 @@
  */
 package org.reific.braid;
 
-import java.util.List;
+import java.util.Objects;
 
-class Interners implements Interner {
-	private final List<Interner> interners;
+/**
+ * An optimized version of {@link CommonStringInterner}, used when there is only one common String specified.
+ */
+final class CommonStringInternerWithOne implements Interner {
 
-	public Interners(List<Interner> interners) {
-		this.interners = interners;
+	private final String string;
+	private final Braid braid;
+
+	CommonStringInternerWithOne(String commonString) {
+		this.string = commonString;
+		this.braid = new InternedBraid(string);
 	}
 
 	@Override
-	public Braid attemptToIntern(String string) {
-		for (Interner interner : interners) {
-			Braid match = interner.attemptToIntern(string);
-			if (match != null) {
-				return match;
-			}
+	public Braid attemptToIntern(final String value) {
+		if (Objects.equals(value, string)) {
+			return braid;
 		}
 		return null;
 	}

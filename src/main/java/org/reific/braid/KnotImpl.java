@@ -74,13 +74,16 @@ class KnotImpl implements Knot, InternalKnot {
 		if (string.equals("")) {
 			return EMPTY_STRING_BRAID;
 		}
-		Braid possibleInternMatch = interners.attemptToIntern(string);
-		if (possibleInternMatch != null) {
-			return possibleInternMatch;
-		}
+		// Check Rememberers first, since they are a bit faster that Interners
+		// (Probably due to temporal cache locality)
 		Braid possibleRecall = rememberers.maybeRecall(string);
 		if (possibleRecall != null) {
 			return possibleRecall;
+		}
+		Braid possibleInternMatch = interners.attemptToIntern(string);
+		if (possibleInternMatch != null) {
+			// TODO: consider remembering this match
+			return possibleInternMatch;
 		}
 		BraidImpl newBraid = new BraidImpl(this, string);
 		rememberers.maybeRemember(string, newBraid);

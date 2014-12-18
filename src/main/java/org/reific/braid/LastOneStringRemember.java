@@ -22,8 +22,8 @@ import java.util.Objects;
 
 class LastOneStringRemember implements Rememberer {
 
-	String lastKey;
-	Braid lastValue;
+	private String lastKey;
+	private Braid lastValue;
 
 	@Override
 	public void maybeRemember(String key, Braid value) {

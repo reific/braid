@@ -18,22 +18,33 @@
  */
 package org.reific.braid;
 
-import java.util.HashMap;
 import java.util.Set;
 
-class CommonStringInterner implements Interner {
+final class CommonStringInterner implements Interner {
 
-	private final HashMap<String, Braid> commonStrings = new HashMap<String, Braid>();
+	private final String[] strings;
+	private final Braid[] braids;
 
 	CommonStringInterner(Set<String> commonStrings) {
+		this.strings = new String[commonStrings.size()];
+		this.braids = new Braid[commonStrings.size()];
+		int i = 0;
 		for (String string : commonStrings) {
-			this.commonStrings.put(string, new InternedBraid(string));
+			this.strings[i] = string;
+			this.braids[i] = new InternedBraid(string);
+			i++;
 		}
 	}
 
 	@Override
-	public Braid attemptToIntern(String value) {
-		return commonStrings.get(value);
+	public Braid attemptToIntern(final String value) {
+		for (int i = 0; i < strings.length; i++) {
+			if (strings[i].equals(value)) {
+				return braids[i];
+			}
+		}
+		return null;
+
 	}
 
 }
