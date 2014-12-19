@@ -21,6 +21,9 @@ package org.reific.braid;
 import gnu.trove.impl.Constants;
 
 import java.nio.charset.Charset;
+import java.util.Objects;
+
+import org.reific.braid.LZ78Dictionary.Key;
 
 /**
  * (With VInt) Example of storing: this that the other
@@ -78,8 +81,9 @@ class LZ78KnotStorage implements KnotStorage {
 	private static final int INITIAL_DICTIONARY_SIZE = 128;
 	private static final float DICTIONARY_LOAD_FACTOR = Constants.DEFAULT_LOAD_FACTOR;
 	private final Buffer byteBuffer;
-	private final LZ78Dictionary dictionary = new LZ78Dictionary(INITIAL_DICTIONARY_SIZE,
-			DICTIONARY_LOAD_FACTOR, -2);
+	//private final LZ78Dictionary dictionary = new LZ78Dictionary(INITIAL_DICTIONARY_SIZE,
+	//		DICTIONARY_LOAD_FACTOR, -2);
+	private final LZ78HashOnlyDictionary dictionary = new LZ78HashOnlyDictionary();
 
 	public LZ78KnotStorage(Buffer buffer) {
 		this.byteBuffer = buffer;
@@ -109,14 +113,14 @@ class LZ78KnotStorage implements KnotStorage {
 			int bufferPosition = byteBuffer.nextWritePosition();
 			byte token = stringBytes[i];
 			currentPhrase1[currentPhraseLength++] = token;
-			int pointer = dictionary.get(currentPhrase1, currentPhraseLength);
+			int pointer = dictionaryGet(currentPhrase1, currentPhraseLength);
 
 			if (pointer == -2) {
 				// not found in dictionary. Add to dictionary and compressed
 				// stream and start over
 				byteBuffer.putByte(token);
 				byteBuffer.putVInt(currentPointer);
-				dictionary.put(currentPhrase1, currentPhraseLength, bufferPosition);
+				dictionaryPut(currentPhrase1, currentPhraseLength, bufferPosition);
 				currentPhrase1 = new byte[stringLength];
 				currentPhraseLength = 0;
 				currentPointer = 0;
@@ -135,6 +139,51 @@ class LZ78KnotStorage implements KnotStorage {
 			}
 		}
 		return startingBufferPosition;
+	}
+
+	private void dictionaryPut(byte[] currentPhrase1, int currentPhraseLength, int bufferPosition) {
+		dictionary.put(currentPhrase1, currentPhraseLength, bufferPosition);
+	}
+
+	private int dictionaryGet(byte[] currentPhrase, int currentPhraseLength) {
+		int[] possibleIndexes = dictionary.get(currentPhrase, currentPhraseLength);
+		if (possibleIndexes.length == 0) {
+			return -2;
+		}
+		for (int i = 0; i < possibleIndexes.length; i++) {
+			byte[] possibleMatch = lookupPointer(possibleIndexes[i], currentPhraseLength);
+			if (possibleMatch == null) {
+				continue;
+			}
+			Key key = new LZ78Dictionary.Key(currentPhrase, currentPhraseLength);
+			Key key2 = new LZ78Dictionary.Key(possibleMatch, possibleMatch.length);
+			if (Objects.equals(key, key2)) {
+				return possibleIndexes[i];
+			}
+		}
+		return -2;
+		//throw new RuntimeException();
+
+	}
+
+	private byte[] lookupPointer(int index, int length) {
+		byte[] innerResult = new byte[length];
+		int innerResultCount = 0;
+		while (index > 0) {
+			if (innerResultCount >= innerResult.length) {
+				// request of wrong length requested. no match.
+				return null;
+			}
+			byte character = byteBuffer.getByte(index);
+			VInt nexVInt = byteBuffer.getVInt(index + 1);
+
+			index = nexVInt.value;
+			innerResult[innerResult.length - 1 - innerResultCount++] = character;
+		}
+		if (innerResultCount != length) {
+			return null;
+		}
+		return innerResult;
 	}
 
 	@Override

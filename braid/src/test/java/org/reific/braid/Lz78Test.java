@@ -13,9 +13,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Test;
-import org.reific.braid.Braid;
-import org.reific.braid.Knot;
-import org.reific.braid.Knots;
 
 public class Lz78Test {
 
@@ -37,6 +34,26 @@ public class Lz78Test {
 	}
 
 	@Test
+	public void testBytePermutations() throws Exception {
+		final Knot knot = Knots.builder().build();
+		for (int i = 0; i < 50; i++) {
+			StringBuffer buf = new StringBuffer();
+			buf.append((char) i);
+			knot.braid(new String(buf.toString()));
+			for (int j = 0; j < 50; j++) {
+				buf = new StringBuffer();
+				buf.append((char) j);
+				knot.braid(new String(buf.toString()));
+
+				buf = new StringBuffer();
+				buf.append((char) i);
+				buf.append((char) j);
+				knot.braid(new String(buf.toString()));
+			}
+		}
+	}
+
+	@Test
 	public void testMultibyteUnicode() throws Exception {
 		final Knot knot = Knots.builder().build();
 
@@ -44,6 +61,7 @@ public class Lz78Test {
 		String string = new String("\u0024");
 		Braid braid = knot.braid(string);
 		assertEquals("$", braid.get());
+
 		// ¢ (cent) 2-byte in UTF-8 
 		string = new String("\u00A2");
 		braid = knot.braid(string);
@@ -103,8 +121,11 @@ public class Lz78Test {
 
 		InputStream stream = this.getClass().getResourceAsStream("/hayek-road-to-serfdom.txt");
 
+		//int testCount = 0;
 		try (BufferedReader br = new BufferedReader(new InputStreamReader(stream))) {
 			for (String line; (line = br.readLine()) != null;) {
+				//System.out.println(line);
+				//System.out.println(testCount++);
 				uncompressed.add(line);
 				compressed.add(knot.braid(line));
 			}

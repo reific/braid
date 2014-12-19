@@ -21,6 +21,8 @@ package org.reific.braid;
 import gnu.trove.map.TObjectIntMap;
 import gnu.trove.map.hash.TObjectIntHashMap;
 
+import java.io.UnsupportedEncodingException;
+
 class LZ78Dictionary {
 
 	TObjectIntMap<Key> dictionary;
@@ -29,7 +31,7 @@ class LZ78Dictionary {
 	 * HashMap key wrapper for byte[]. Only the specified length is considered for hashCode/Equals so that
 	 * arrays can be reused by clients for sub-arrays.
 	 */
-	private static class Key {
+	public static class Key {
 
 		final byte[] currentPhrase;
 		final private int length;
@@ -64,6 +66,17 @@ class LZ78Dictionary {
 			}
 			return result;
 		}
+
+		@Override
+		public String toString() {
+			try {
+				return "_" + new String(currentPhrase, 0, length, "UTF-8") + "_";
+			} catch (UnsupportedEncodingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				return null;
+			}
+		}
 	}
 
 	public LZ78Dictionary(int initialDictionarySize, float dictionaryLoadFactor, int noEntryValue) {
@@ -73,8 +86,17 @@ class LZ78Dictionary {
 	/**
 	 * Lookup the entry with the given byte[] key, only considering the first 'length' elements.
 	 */
-	public int get(byte[] key, int length) {
-		return dictionary.get(new Key(key, length));
+	public int[] get(byte[] key, int length) {
+		int match = dictionary.get(new Key(key, length));
+		if (match == -2) {
+			return new int[0];
+		}
+		int[] result = new int[4];
+		result[0] = length > 1 ? dictionary.get(new Key(key, length - 1)) : match;
+		result[1] = length > 2 ? dictionary.get(new Key(key, length - 2)) : match;
+		result[2] = length > 3 ? dictionary.get(new Key(key, length - 3)) : match;
+		result[3] = match;
+		return result;
 	}
 
 	/**

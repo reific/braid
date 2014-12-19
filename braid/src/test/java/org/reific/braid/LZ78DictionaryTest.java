@@ -22,7 +22,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 import org.junit.Test;
-import org.reific.braid.LZ78Dictionary;
 
 public class LZ78DictionaryTest {
 
@@ -37,8 +36,8 @@ public class LZ78DictionaryTest {
 
 		LZ78Dictionary dict = new LZ78Dictionary(128, 0.5f, -2);
 		dict.put(a, 1, 99);
-		assertThat(dict.get(a, 1), equalTo(99));
-		assertThat(dict.get(b, 1), equalTo(99));
+		assertThat(dict.get(a, 1)[0], equalTo(99));
+		assertThat(dict.get(b, 1)[0], equalTo(99));
 	}
 
 	@Test
@@ -48,12 +47,12 @@ public class LZ78DictionaryTest {
 
 		LZ78Dictionary dict = new LZ78Dictionary(128, 0.5f, -2);
 		dict.put(a, 0, 99);
-		assertThat(dict.get(a, 0), equalTo(99));
+		assertThat(dict.get(a, 0)[0], equalTo(99));
 
 		byte[] b = new byte[] { 32, };
 
 		dict.put(b, 0, 66);
-		assertThat(dict.get(b, 0), equalTo(66));
+		assertThat(dict.get(b, 0)[0], equalTo(66));
 	}
 
 
