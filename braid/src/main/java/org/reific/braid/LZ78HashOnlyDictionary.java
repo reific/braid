@@ -23,8 +23,8 @@ class LZ78HashOnlyDictionary {
 
 	private static final int CAPACITY = 123456;
 	int[] values = new int[CAPACITY];
-	//int[] fullHashes = new int[CAPACITY];
-	private int size;
+	int[] fullHashes = new int[CAPACITY];
+	private int numElements;
 
 	public LZ78HashOnlyDictionary() {
 	}
@@ -34,26 +34,40 @@ class LZ78HashOnlyDictionary {
 	 * @return a list of possible matches, which can include zero or more false-positives.
 	 */
 	public int[] get(byte[] key, int length) {
-		// compute hashcode of key
-		int fullHashCode = 1;
-		for (int i = 0; i < length; i++) {
-			fullHashCode = 31 * fullHashCode + key[i];
-		}
-		// avoid negative
-		int lowerBound = (fullHashCode & 0x7FFFFFFF) % CAPACITY;
+		int hashCode = computeHashCode(key, length);
+		int lowerBound = hashCode % CAPACITY;
+		//System.out.printf("get: %d\n", lowerBound);
 
 		int numMatches = 0;
+		int actualMatches = 0;
 		// linear probe for free space 
 		while (values[(lowerBound + numMatches) % CAPACITY] != 0) {
+			if (fullHashes[(lowerBound + numMatches) % CAPACITY] == hashCode) {
+				actualMatches++;
+			}
 			numMatches++;
 		}
 		//System.out.println("num matches:" + numMatches);
-		int[] result = new int[numMatches];
-		for (int i = 0; i < result.length; i++) {
-			// value offset by 1 so zero-initialized array means not-present
-			result[i] = values[(lowerBound + i) % CAPACITY] - 1;
+		int[] result = new int[actualMatches];
+		int index = 0;
+		for (int i = 0; i < numMatches; i++) {
+			if (fullHashes[(lowerBound + i) % CAPACITY] == hashCode) {
+				// value offset by 1 so zero-initialized array means not-present
+				result[index++] = values[(lowerBound + i) % CAPACITY] - 1;
+			}
 		}
 		return result;
+	}
+
+	private static int computeHashCode(byte[] key, int length) {
+		int hashCode = 1;
+		for (int i = 0; i < length; i++) {
+			hashCode = 31 * hashCode + key[i];
+		}
+		// prevent negative
+		// TODO keep full hashcode until later to prevent more false negatives
+		hashCode = (hashCode & 0x7FFFFFFF);
+		return hashCode;
 	}
 
 	/**
@@ -61,23 +75,20 @@ class LZ78HashOnlyDictionary {
 	 * callers must not modify any elements of the key within this range.
 	 */
 	public void put(byte[] key, int length, int value) {
-		// compute hashcode of key
-		int fullHashCode = 1;
-		for (int i = 0; i < length; i++) {
-			fullHashCode = 31 * fullHashCode + key[i];
-		}
-		// avoid negative
-		int modedHashCode = (fullHashCode & 0x7FFFFFFF) % CAPACITY;
+		int hashCode = computeHashCode(key, length);
+		int location = hashCode % CAPACITY;
+		//System.out.printf("put: %d %d\n", hashCode, location);
 
 		// linear probe for free space 
-		while (values[modedHashCode] != 0) {
+		while (values[location] != 0) {
 			//System.out.println("collision");
-			modedHashCode = (modedHashCode + 1) % CAPACITY;
+			location = (location + 1) % CAPACITY;
 		}
 		// value offset by 1 so zero-initialized array means not-present
 		//System.out.println(modedHashCode);
-		values[modedHashCode] = value + 1;
-		size = size + 1;
+		values[location] = value + 1;
+		fullHashes[location] = hashCode;
+		numElements = numElements + 1;
 
 	}
 
