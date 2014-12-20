@@ -25,10 +25,14 @@ class KnotImpl implements Knot, InternalKnot {
 	public String lookupString(int index) {
 		return knotStorage.lookup(index);
 	}
+	@Override
+	public void flush() {
+		knotStorage.flush();
+	}
 
 	@Override
-	public int getCompressedSize() {
-		return knotStorage.getCompressedSize();
+	public long spaceUsed() {
+		return knotStorage.spaceUsed();
 	}
 
 	private static final Braid NULL_BRAID = new Braid() {

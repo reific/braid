@@ -77,15 +77,25 @@ class LZ78KnotStorage implements KnotStorage {
 	private static final Charset STRING_CHARSET = Charset.forName("UTF-8");
 
 	private final Buffer byteBuffer;
-	private final LZ78HashOnlyDictionary dictionary = new LZ78HashOnlyDictionary(64, 0.5f);
+	private LZ78HashOnlyDictionary dictionary;
+	private final int initialDictionaryCapacity;
+	private final float dictionaryLoadFactor;
 
-	public LZ78KnotStorage(Buffer buffer) {
+	public LZ78KnotStorage(Buffer buffer, int initialDictionaryCapacity, float dictionaryLoadFactor) {
 		this.byteBuffer = buffer;
+		this.initialDictionaryCapacity = initialDictionaryCapacity;
+		this.dictionaryLoadFactor = dictionaryLoadFactor;
+		dictionary = new LZ78HashOnlyDictionary(initialDictionaryCapacity, dictionaryLoadFactor);
 	}
 
 	@Override
-	public int getCompressedSize() {
-		return byteBuffer.getSize();
+	public void flush() {
+		dictionary = new LZ78HashOnlyDictionary(initialDictionaryCapacity, dictionaryLoadFactor);
+	}
+
+	@Override
+	public long spaceUsed() {
+		return byteBuffer.getSize() + dictionary.spaceUsed();
 	}
 
 	@Override

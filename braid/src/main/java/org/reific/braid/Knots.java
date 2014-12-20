@@ -10,6 +10,9 @@ public class Knots {
 	private static final int DEFAULT_BYTE_BUFFER_SIZE = 128;
 	private static final float DEFAULT_GROWTH_FACTOR = 1.5f;
 
+	private static final int DEFAULT_DICTIONARY_CAPACITY = 2;
+	private static final float DEFAULT_DICTIONARY_LOAD_FACTOR = 0.5f;
+
 	private Knots() {
 	}
 
@@ -21,6 +24,8 @@ public class Knots {
 		 * as no (de-)compression will be required.
 		 */
 		KnotBuilder common(String commonString, String... moreCommonStrings);
+
+		KnotBuilder lz78Dictionary(int initialDictionaryCapacity, float dictionaryLoadFactor);
 		KnotBuilder lz78(int initialBufferSize, float bufferGrowthFactor);
 		KnotBuilder rememberLast(int num);
 		KnotBuilder direct();
@@ -36,6 +41,8 @@ public class Knots {
 		private int rememberLast = 0;
 		private int lz78BufferSize = DEFAULT_BYTE_BUFFER_SIZE;
 		private float lz78GrowthFactor = DEFAULT_GROWTH_FACTOR;
+		private int initialDictionaryCapacity = DEFAULT_DICTIONARY_CAPACITY;
+		private float dictionaryLoadFactor = DEFAULT_DICTIONARY_LOAD_FACTOR;
 
 		@Override
 		public KnotBuilder common(String commonString, String... remainingCommonStrings) {
@@ -68,6 +75,14 @@ public class Knots {
 			return this;
 		}
 
+		@Override
+		public KnotBuilder lz78Dictionary(int initialDictionaryCapacity, float dictionaryLoadFactor) {
+			checkAlreadyBuilt();
+			this.initialDictionaryCapacity = initialDictionaryCapacity;
+			this.dictionaryLoadFactor = dictionaryLoadFactor;
+			return this;
+		}
+
 		public Knot build() {
 			checkAlreadyBuilt();
 			built = true;
@@ -91,7 +106,9 @@ public class Knots {
 			}
 			Rememberers rememberers = new Rememberers(remembererList);
 
-			return new KnotImpl(interners, new LZ78KnotStorage(buffer), rememberers, mutableInterners);
+			return new KnotImpl(interners,
+					new LZ78KnotStorage(buffer, initialDictionaryCapacity, dictionaryLoadFactor), rememberers,
+					mutableInterners);
 		}
 
 		@Override

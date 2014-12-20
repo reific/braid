@@ -121,13 +121,35 @@ public class Lz78Test {
 
 		InputStream stream = this.getClass().getResourceAsStream("/hayek-road-to-serfdom.txt");
 
-		//int testCount = 0;
 		try (BufferedReader br = new BufferedReader(new InputStreamReader(stream))) {
 			for (String line; (line = br.readLine()) != null;) {
-				//System.out.println(line);
-				//System.out.println(testCount++);
 				uncompressed.add(line);
 				compressed.add(knot.braid(line));
+			}
+		}
+		assertEquals(uncompressed.size(), compressed.size());
+		for (int i = 0; i < uncompressed.size(); i++) {
+			assertEquals(uncompressed.get(i), compressed.get(i).get());
+		}
+	}
+
+	@Test
+	/**
+	 * Parse and Braid-compress a large amount of text, as an attempt to catch any edge cases that might have been overlooked
+	 */
+	public void testTextWithDictionaryFlush() throws Exception {
+
+		final Knot knot = Knots.builder().build();
+		List<String> uncompressed = new ArrayList<String>();
+		List<Braid> compressed = new ArrayList<Braid>();
+
+		InputStream stream = this.getClass().getResourceAsStream("/hayek-road-to-serfdom.txt");
+
+		try (BufferedReader br = new BufferedReader(new InputStreamReader(stream))) {
+			for (String line; (line = br.readLine()) != null;) {
+				uncompressed.add(line);
+				compressed.add(knot.braid(line));
+				knot.flush();
 			}
 		}
 		assertEquals(uncompressed.size(), compressed.size());

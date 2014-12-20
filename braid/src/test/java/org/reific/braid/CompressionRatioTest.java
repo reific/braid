@@ -45,7 +45,9 @@ public class CompressionRatioTest {
 			knot.braid(line);
 		}
 
-		assertThat((double) knot.getCompressedSize() / uncompressedSizeUtf16, closeTo(0.032605, 0.000001));
+		assertThat((double) knot.spaceUsed() / uncompressedSizeUtf16, closeTo(0.040684, 0.000001));
+		knot.flush();
+		assertThat((double) knot.spaceUsed() / uncompressedSizeUtf16, closeTo(0.032615, 0.000001));
 	}
 
 	@Test
@@ -53,27 +55,32 @@ public class CompressionRatioTest {
 
 		// This string currently compresses to 91 bytes
 		String line = "Science is the great antidote to the poison of enthusiasm and superstition.";
-		final int BUFFER_SIZE = 91;
+		final int expectedBufferSize = 91;
+		final int dictionarySize = 200;
+		final long expectedDictionarySpaceUsed = dictionarySize * 2 * 4; // two int arrays
+		final long expectTotalSpaceUsed = expectedBufferSize + expectedDictionarySpaceUsed;
 		final Knot knot = Knots.builder()
 		// remember the last string
 				.rememberLast(1)
 				// explicit size and ratio (for comparing)
-				.lz78(BUFFER_SIZE, 1.0f).build();
+				.lz78(expectedBufferSize, 1.0f)
+				.lz78Dictionary(200, 0.5f)
+				.build();
 
-		assertThat(knot.getCompressedSize(), equalTo(BUFFER_SIZE));
+		assertThat(knot.spaceUsed(), equalTo(expectTotalSpaceUsed));
 		knot.braid(new String(line));
-		assertThat(knot.getCompressedSize(), equalTo(BUFFER_SIZE));
+		assertThat(knot.spaceUsed(), equalTo(expectTotalSpaceUsed));
 
 		//Ensure that adding the same string many times does not change the buffer size
 		for (int i = 0; i < 100; i++) {
 
 			knot.braid(new String(line));
 		}
-		assertThat(knot.getCompressedSize(), equalTo(BUFFER_SIZE));
+		assertThat(knot.spaceUsed(), equalTo(expectTotalSpaceUsed));
 		// now add some more unrelated data.
 		knot.braid(new String("S"));
 		// The buffer should double, based on the growth factor
-		assertThat(knot.getCompressedSize(), equalTo(2 * BUFFER_SIZE));
+		assertThat(knot.spaceUsed(), equalTo(2 * expectedBufferSize + expectedDictionarySpaceUsed));
 
 	}
 
@@ -92,7 +99,7 @@ public class CompressionRatioTest {
 		}
 
 		// No idea what the correct compression should once this test is fixed
-		assertThat((double) knot.getCompressedSize() / uncompressedSizeUtf16, closeTo(0.131846, 0.000001));
+		assertThat((double) knot.spaceUsed() / uncompressedSizeUtf16, closeTo(0.131846, 0.000001));
 	}
 
 	@Test
@@ -113,8 +120,10 @@ public class CompressionRatioTest {
 			}
 		}
 
-		// Make explicit assertions about compression ratios, so that if anything chages (good or bad),
+		// Make explicit assertions about compression ratios, so that if anything changes (good or bad),
 		// we know it.
-		assertThat((double) knot.getCompressedSize() / uncompressedSizeUtf16, closeTo(0.131846, 0.000001));
+		assertThat((double) knot.spaceUsed() / uncompressedSizeUtf16, closeTo(0.479934, 0.000001));
+		knot.flush();
+		assertThat((double) knot.spaceUsed() / uncompressedSizeUtf16, closeTo(0.131875, 0.000001));
 	}
 }
