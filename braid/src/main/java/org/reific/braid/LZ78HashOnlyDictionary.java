@@ -19,14 +19,61 @@
 package org.reific.braid;
 
 
+
 class LZ78HashOnlyDictionary {
 
-	private static final int CAPACITY = 123456;
-	int[] values = new int[CAPACITY];
-	int[] fullHashes = new int[CAPACITY];
-	private int numElements;
+	/**
+	 * The maximum size of array to allocate.
+	 * Some VMs reserve some header words in an array.
+	 * Attempts to allocate larger arrays may result in
+	 * OutOfMemoryError: Requested array size exceeds VM limit
+	 * (from java.utl.Hashtable)
+	 */
+	private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
 
-	public LZ78HashOnlyDictionary() {
+	int[] values;
+	int[] fullHashes;
+	private int numElements;
+	private float loadFactor;
+
+	private int threshold;
+
+	protected void rehash() {
+		int oldCapacity = values.length;
+		int[] oldValues = values;
+		int[] oldFullHashes = fullHashes;
+
+		// overflow-conscious code
+		int newCapacity = (oldCapacity << 1) + 1;
+		if (newCapacity - MAX_ARRAY_SIZE > 0) {
+			if (oldCapacity == MAX_ARRAY_SIZE)
+				// Keep running with MAX_ARRAY_SIZE buckets
+				return;
+			newCapacity = MAX_ARRAY_SIZE;
+		}
+		values = new int[newCapacity];
+		fullHashes = new int[newCapacity];
+
+		threshold = (int) Math.min(newCapacity * loadFactor, MAX_ARRAY_SIZE + 1);
+
+		for (int i = 0; i < oldCapacity; i++) {
+			int oldValue = oldValues[i];
+			if (oldValue != 0) {
+				int index = oldFullHashes[i] % newCapacity;
+				while (values[index] != 0) {
+					index = (index + 1) % values.length;
+				}
+				values[index] = oldValue;
+				fullHashes[index] = oldFullHashes[i];
+			}
+		}
+	}
+
+	public LZ78HashOnlyDictionary(int initialCapacity, float loadFactor) {
+		values = new int[initialCapacity];
+		fullHashes = new int[initialCapacity];
+		this.loadFactor = loadFactor;
+		this.threshold = (int)Math.min(initialCapacity * loadFactor, MAX_ARRAY_SIZE + 1);
 	}
 
 	/**
@@ -35,14 +82,14 @@ class LZ78HashOnlyDictionary {
 	 */
 	public int[] get(byte[] key, int length) {
 		int hashCode = computeHashCode(key, length);
-		int lowerBound = hashCode % CAPACITY;
+		int lowerBound = hashCode % values.length;
 		//System.out.printf("get: %d\n", lowerBound);
 
 		int numMatches = 0;
 		int actualMatches = 0;
 		// linear probe for free space 
-		while (values[(lowerBound + numMatches) % CAPACITY] != 0) {
-			if (fullHashes[(lowerBound + numMatches) % CAPACITY] == hashCode) {
+		while (values[(lowerBound + numMatches) % values.length] != 0) {
+			if (fullHashes[(lowerBound + numMatches) % values.length] == hashCode) {
 				actualMatches++;
 			}
 			numMatches++;
@@ -51,9 +98,9 @@ class LZ78HashOnlyDictionary {
 		int[] result = new int[actualMatches];
 		int index = 0;
 		for (int i = 0; i < numMatches; i++) {
-			if (fullHashes[(lowerBound + i) % CAPACITY] == hashCode) {
+			if (fullHashes[(lowerBound + i) % values.length] == hashCode) {
 				// value offset by 1 so zero-initialized array means not-present
-				result[index++] = values[(lowerBound + i) % CAPACITY] - 1;
+				result[index++] = values[(lowerBound + i) % values.length] - 1;
 			}
 		}
 		return result;
@@ -75,14 +122,17 @@ class LZ78HashOnlyDictionary {
 	 * callers must not modify any elements of the key within this range.
 	 */
 	public void put(byte[] key, int length, int value) {
+		if (numElements >= threshold) {
+			rehash();
+		}
 		int hashCode = computeHashCode(key, length);
-		int location = hashCode % CAPACITY;
+		int location = hashCode % values.length;
 		//System.out.printf("put: %d %d\n", hashCode, location);
 
 		// linear probe for free space 
 		while (values[location] != 0) {
 			//System.out.println("collision");
-			location = (location + 1) % CAPACITY;
+			location = (location + 1) % values.length;
 		}
 		// value offset by 1 so zero-initialized array means not-present
 		//System.out.println(modedHashCode);

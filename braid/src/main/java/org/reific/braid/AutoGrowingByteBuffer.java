@@ -13,7 +13,7 @@ class AutoGrowingByteBuffer implements Buffer {
 	// growth will eventually stop.
 	private static final float MIN_GROWTH_FACTOR = 1.0f;
 	// Must be at least as big as the largest primitive (5 byte VInt)
-	private static final int MIN_SIZE = 5;
+	private static final int MIN_SIZE = 4;
 
 	private final float growthFactor;
 	private final boolean direct;

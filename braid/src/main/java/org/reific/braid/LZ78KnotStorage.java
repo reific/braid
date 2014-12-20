@@ -18,8 +18,6 @@
  */
 package org.reific.braid;
 
-import gnu.trove.impl.Constants;
-
 import java.nio.charset.Charset;
 import java.util.Objects;
 
@@ -78,12 +76,8 @@ class LZ78KnotStorage implements KnotStorage {
 
 	private static final Charset STRING_CHARSET = Charset.forName("UTF-8");
 
-	private static final int INITIAL_DICTIONARY_SIZE = 128;
-	private static final float DICTIONARY_LOAD_FACTOR = Constants.DEFAULT_LOAD_FACTOR;
 	private final Buffer byteBuffer;
-	//private final LZ78Dictionary dictionary = new LZ78Dictionary(INITIAL_DICTIONARY_SIZE,
-	//		DICTIONARY_LOAD_FACTOR, -2);
-	private final LZ78HashOnlyDictionary dictionary = new LZ78HashOnlyDictionary();
+	private final LZ78HashOnlyDictionary dictionary = new LZ78HashOnlyDictionary(64, 0.5f);
 
 	public LZ78KnotStorage(Buffer buffer) {
 		this.byteBuffer = buffer;
