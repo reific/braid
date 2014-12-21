@@ -119,7 +119,7 @@ class LZ78KnotStorage implements KnotStorage {
 			currentPhrase1[currentPhraseLength++] = token;
 			int pointer = dictionaryGet(currentPhrase1, currentPhraseLength);
 
-			if (pointer == -2) {
+			if (pointer == -1) {
 				// not found in dictionary. Add to dictionary and compressed
 				// stream and start over
 				byteBuffer.putByte(token);
@@ -145,49 +145,58 @@ class LZ78KnotStorage implements KnotStorage {
 		return startingBufferPosition;
 	}
 
-	private void dictionaryPut(byte[] currentPhrase1, int currentPhraseLength, int bufferPosition) {
-		dictionary.put(currentPhrase1, currentPhraseLength, bufferPosition);
+	private void dictionaryPut(byte[] string, int stringLength, int value) {
+		dictionary.put(string, stringLength, value);
 	}
 
-	private int dictionaryGet(byte[] currentPhrase, int currentPhraseLength) {
-		int[] possibleIndexes = dictionary.get(currentPhrase, currentPhraseLength);
+	private int dictionaryGet(byte[] string, int length) {
+		int[] possibleIndexes = dictionary.get(string, length);
 		if (possibleIndexes.length == 0) {
-			return -2;
+			return -1;
 		}
 		for (int i = 0; i < possibleIndexes.length; i++) {
-			byte[] possibleMatch = lookupPointer(possibleIndexes[i], currentPhraseLength);
+			byte[] possibleMatch = lookupPointer(possibleIndexes[i], length);
 			if (possibleMatch == null) {
 				continue;
 			}
-			Key key = new LZ78Dictionary.Key(currentPhrase, currentPhraseLength);
+			Key key = new LZ78Dictionary.Key(string, length);
 			Key key2 = new LZ78Dictionary.Key(possibleMatch, possibleMatch.length);
 			if (Objects.equals(key, key2)) {
 				return possibleIndexes[i];
 			}
 		}
-		return -2;
-		//throw new RuntimeException();
-
+		return -1;
 	}
 
-	private byte[] lookupPointer(int index, int length) {
-		byte[] innerResult = new byte[length];
-		int innerResultCount = 0;
+	/**
+	 * lookup the given index in the compressed buffer for a string of the given length. 
+	 * 
+	 * In a traditional LZ78 implementation this would be accomplished by looking up
+	 * directly in the dictionary, but our dictionary only contains hashes of keys (i.e., potential matches), not the actual keys.
+	 * 
+	 * @param index to a location in the compressed buffer. This must be a valid index, or behavior is undefined.
+	 * @param expectedLength of the string being looked up. If the string found at the given index is of a different length, null will be returned.
+	 * 
+	 * @return the string at the given index unless it is not of the expected length, in which case null is returned.
+	 */
+	private byte[] lookupPointer(int index, int expectedLength) {
+		byte[] result = new byte[expectedLength];
+		int resultCount = 0;
 		while (index > 0) {
-			if (innerResultCount >= innerResult.length) {
-				// request of wrong length requested. no match.
+			if (resultCount >= expectedLength) {
+				// found a match longer that the expectedLength. Not a match.
 				return null;
 			}
 			byte character = byteBuffer.getByte(index);
 			VInt nexVInt = byteBuffer.getVInt(index + 1);
-
 			index = nexVInt.value;
-			innerResult[innerResult.length - 1 - innerResultCount++] = character;
+			result[result.length - 1 - resultCount++] = character;
 		}
-		if (innerResultCount != length) {
+		if (resultCount < expectedLength) {
+			// found a match shorter that the expectedLength. Not a match.
 			return null;
 		}
-		return innerResult;
+		return result;
 	}
 
 	@Override

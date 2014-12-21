@@ -35,6 +35,13 @@ class LZ78HashOnlyDictionary {
 	private float loadFactor;
 	private int threshold;
 
+	LZ78HashOnlyDictionary(int initialCapacity, float loadFactor) {
+		values = new int[initialCapacity];
+		fullHashes = new int[initialCapacity];
+		this.loadFactor = loadFactor;
+		this.threshold = (int) Math.min(initialCapacity * loadFactor, MAX_ARRAY_SIZE + 1);
+	}
+
 	protected void rehash() {
 		int oldCapacity = values.length;
 		int[] oldValues = values;
@@ -67,13 +74,6 @@ class LZ78HashOnlyDictionary {
 		}
 	}
 
-	public LZ78HashOnlyDictionary(int initialCapacity, float loadFactor) {
-		values = new int[initialCapacity];
-		fullHashes = new int[initialCapacity];
-		this.loadFactor = loadFactor;
-		this.threshold = (int)Math.min(initialCapacity * loadFactor, MAX_ARRAY_SIZE + 1);
-	}
-
 	/**
 	 * Lookup the entry with the given byte[] key, only considering the first 'length' elements of the key. 
 	 * @return a list of possible matches, which can include zero or more false-positives.
@@ -92,11 +92,11 @@ class LZ78HashOnlyDictionary {
 			numMatches++;
 		}
 		int[] result = new int[actualMatches];
-		int index = 0;
+		int resultIndex = 0;
 		for (int i = 0; i < numMatches; i++) {
 			if (fullHashes[(lowerBound + i) % values.length] == hashCode) {
 				// value offset by 1 so zero-initialized array means not-present
-				result[index++] = values[(lowerBound + i) % values.length] - 1;
+				result[resultIndex++] = values[(lowerBound + i) % values.length] - 1;
 			}
 		}
 		return result;
