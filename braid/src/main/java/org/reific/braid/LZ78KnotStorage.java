@@ -19,9 +19,6 @@
 package org.reific.braid;
 
 import java.nio.charset.Charset;
-import java.util.Objects;
-
-import org.reific.braid.LZ78Dictionary.Key;
 
 /**
  * (With VInt) Example of storing: this that the other
@@ -159,13 +156,25 @@ class LZ78KnotStorage implements KnotStorage {
 			if (possibleMatch == null) {
 				continue;
 			}
-			Key key = new LZ78Dictionary.Key(string, length);
-			Key key2 = new LZ78Dictionary.Key(possibleMatch, possibleMatch.length);
-			if (Objects.equals(key, key2)) {
+			//Key key = new LZ78Dictionary.Key(string, length);
+			//Key key2 = new LZ78Dictionary.Key(possibleMatch, possibleMatch.length);
+			if (equals(string, length, possibleMatch, possibleMatch.length)) {
 				return possibleIndexes[i];
 			}
 		}
 		return -1;
+	}
+
+	private static boolean equals(byte[] a, int aLength, byte[] b, int bLength) {
+		if (aLength != bLength) {
+			return false;
+		}
+		for (int i = 0; i < aLength; i++) {
+			if (a[i] != b[i]) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/**
@@ -188,8 +197,9 @@ class LZ78KnotStorage implements KnotStorage {
 				return null;
 			}
 			byte character = byteBuffer.getByte(index);
-			VInt nexVInt = byteBuffer.getVInt(index + 1);
-			index = nexVInt.value;
+			long nextVInt = byteBuffer.getVInt(index + 1);
+			// take the low-order int
+			index = (int) nextVInt;
 			result[result.length - 1 - resultCount++] = character;
 		}
 		if (resultCount < expectedLength) {
@@ -201,25 +211,30 @@ class LZ78KnotStorage implements KnotStorage {
 
 	@Override
 	public String lookup(int index) {
-		VInt sizeOfString = byteBuffer.getVInt(index);
-		byte[] result = new byte[sizeOfString.value];
-		byte[] innerResult = new byte[sizeOfString.value];
+		final long sizeOfStringVInt = byteBuffer.getVInt(index);
+		final int sizeOfString = (int) sizeOfStringVInt;
+		final int sizeOfStringbytesUsed = (int) (sizeOfStringVInt >> 32);
+		// take low-order byte
+		byte[] result = new byte[sizeOfString];
+		byte[] innerResult = new byte[sizeOfString];
 		int resultCount = 0;
-		index = index + sizeOfString.numBytes;
+		index = index + sizeOfStringbytesUsed;
 		// walk forward over the current string
-		while (resultCount < sizeOfString.value) {
+		while (resultCount < sizeOfString) {
 			int innerResultCount = 0;
 			int pointer = index;
 			// follow the pointer backwards to find tokens
 			while (pointer > 0) {
 				byte character = byteBuffer.getByte(pointer);
-				VInt nexVInt = byteBuffer.getVInt(pointer + 1);
+				long nexVIntPointer = byteBuffer.getVInt(pointer + 1);
+				final int nextPointer = (int) nexVIntPointer;
+				final int nextPointerBytesUsed = (int) (nexVIntPointer >> 32);
 				if (pointer == index) {
 					//first time through inner loop. prepare index for next iteration of outer loop
 					index += 1;
-					index += nexVInt.numBytes;
+					index += nextPointerBytesUsed;
 				}
-				pointer = nexVInt.value;
+				pointer = nextPointer;
 				innerResult[innerResultCount++] = character;
 			}
 			for (int i = innerResultCount - 1; i >= 0; i--) {

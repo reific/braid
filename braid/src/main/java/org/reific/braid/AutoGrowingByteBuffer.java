@@ -3,8 +3,6 @@ package org.reific.braid;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
 
 class AutoGrowingByteBuffer implements Buffer {
 
@@ -14,24 +12,15 @@ class AutoGrowingByteBuffer implements Buffer {
 	private static final float MIN_GROWTH_FACTOR = 1.0f;
 	// Must be at least as big as the largest primitive (5 byte VInt)
 	private static final int MIN_SIZE = 4;
+	private static final int MAX_NUM_OF_BYTE_BUFFERS = 32;
 
 	private final float growthFactor;
 	private final boolean direct;
 	// ordered list of ByteBuffers of increasing size.
 	// data[n+1].length = floor(GROWTH_FACTOR * data[n].length)
-	private final List<ByteBuffer> data = new ArrayList<ByteBuffer>();
-	private ByteBuffer current;
+	private final ByteBuffer[] data = new ByteBuffer[MAX_NUM_OF_BYTE_BUFFERS];
+	private int currentBuffer = 0;
 	private int totalSizeOfPreviousBuffers = 0;
-
-	private class PhysicalIndex {
-		final int index;
-		final ByteBuffer buffer;
-
-		public PhysicalIndex(int index, ByteBuffer buffer) {
-			this.index = index;
-			this.buffer = buffer;
-		}
-	}
 
 	public AutoGrowingByteBuffer(int initialCapacity, float growthFactor, boolean direct) {
 		if (initialCapacity < MIN_SIZE) {
@@ -39,8 +28,7 @@ class AutoGrowingByteBuffer implements Buffer {
 		}
 		this.growthFactor = growthFactor < MIN_GROWTH_FACTOR ? MIN_GROWTH_FACTOR : growthFactor;
 		this.direct = direct;
-		current = allocate(initialCapacity < MIN_SIZE ? MIN_SIZE : initialCapacity);
-		data.add(current);
+		data[currentBuffer] = allocate(initialCapacity < MIN_SIZE ? MIN_SIZE : initialCapacity);
 	}
 
 	private ByteBuffer allocate(int capacity) {
@@ -54,8 +42,8 @@ class AutoGrowingByteBuffer implements Buffer {
 	@Override
 	public int getSize() {
 		int size = 0;
-		for (ByteBuffer byteBuffer : data) {
-			size += byteBuffer.capacity();
+		for (int i = 0; i <= currentBuffer; i++) {
+			size += data[i].capacity();
 		}
 		return size;
 	}
@@ -67,7 +55,7 @@ class AutoGrowingByteBuffer implements Buffer {
 	 */
 	@Override
 	public int nextWritePosition() {
-		return totalSizeOfPreviousBuffers + current.position();
+		return totalSizeOfPreviousBuffers + data[currentBuffer].position();
 	}
 
 	@Override
@@ -75,7 +63,7 @@ class AutoGrowingByteBuffer implements Buffer {
 		growIfNeeded(5);
 		//System.out.printf("putInt  %4s %4s %4s\n", current.capacity(),
 		//		totalSizeOfPreviousBuffers + current.position(), value);
-		writeVInt(value, current);
+		writeVInt(value, data[currentBuffer]);
 	}
 
 	@Override
@@ -83,36 +71,36 @@ class AutoGrowingByteBuffer implements Buffer {
 		growIfNeeded(1);
 		//System.out.printf("putByte %4s %4s %4s\n", current.capacity(),
 		//		totalSizeOfPreviousBuffers + current.position(), (char) value);
-		current.put(value);
+		data[currentBuffer].put(value);
 	}
 
 	@Override
-	public VInt getVInt(int logicalIndex) {
-		PhysicalIndex physicalIndex = calculatePhysicalIndex(logicalIndex);
-		return readVInt(physicalIndex.index, physicalIndex.buffer);
+	public long getVInt(int logicalIndex) {
+		int bufferNumber = 0;
+		ByteBuffer buffer = data[bufferNumber];
+		while (logicalIndex >= buffer.position()) {
+			logicalIndex -= buffer.position();
+			buffer = data[++bufferNumber];
+		}
+		return readVInt(logicalIndex, bufferNumber);
 	}
 
 	@Override
 	public byte getByte(int logicalIndex) {
-		PhysicalIndex physicalIndex = calculatePhysicalIndex(logicalIndex);
-		return physicalIndex.buffer.get(physicalIndex.index);
-	}
-
-	private PhysicalIndex calculatePhysicalIndex(int logicalIndex) {
-		int i = 0;
-		ByteBuffer buffer = data.get(i++);
+		int bufferNumber = 0;
+		ByteBuffer buffer = data[bufferNumber];
 		while (logicalIndex >= buffer.position()) {
 			logicalIndex -= buffer.position();
-			buffer = data.get(i++);
+			buffer = data[++bufferNumber];
 		}
-		return new PhysicalIndex(logicalIndex, buffer);
+		return data[bufferNumber].get(logicalIndex);
 	}
 
 	private void growIfNeeded(int neededSpace) {
-		if (current.position() + neededSpace > current.capacity()) {
-			totalSizeOfPreviousBuffers += current.position();
-			current = allocate((int) (current.capacity() * growthFactor));
-			data.add(current);
+		if (data[currentBuffer].position() + neededSpace > data[currentBuffer].capacity()) {
+			totalSizeOfPreviousBuffers += data[currentBuffer].position();
+			data[currentBuffer + 1] = allocate((int) (data[currentBuffer].capacity() * growthFactor));
+			currentBuffer++;
 
 		}
 	}
@@ -243,11 +231,13 @@ class AutoGrowingByteBuffer implements Buffer {
 	 * supported.
 	 * <p>
 	 * The format is described further in {@link DataOutput#writeVInt(int)}.
-	 * @param buffer 
+	 *
+	 * @return a long with the high-order 4 bytes representing the length, in bytes of the VInt that was read from the compressed 
+	 * buffer, and the low-order 4 bytes representing the int itself.
 	 * 
 	 * @see DataOutput#writeVInt(int)
 	 */
-	private static VInt readVInt(int index, ByteBuffer buffer) {
+	private long readVInt(int index, int bufferNumber) {
 		/* This is the original code of this method,
 		 * but a Hotspot bug (see LUCENE-2975) corrupts the for-loop if
 		 * readByte() is inlined. So the loop was unwinded!
@@ -261,27 +251,27 @@ class AutoGrowingByteBuffer implements Buffer {
 		return i;
 		* </code>
 		*/
-		byte b = buffer.get(index++);
+		byte b = data[bufferNumber].get(index++);
 		if (b >= 0)
-			return new VInt(1, b);
+			return (long) 1 << 32 | b & 0xFFFFFFFFL;
 		int i = b & 0x7F;
-		b = buffer.get(index++);
+		b = data[bufferNumber].get(index++);
 		i |= (b & 0x7F) << 7;
 		if (b >= 0)
-			return new VInt(2, i);
-		b = buffer.get(index++);
+			return (long) 2 << 32 | i & 0xFFFFFFFFL;
+		b = data[bufferNumber].get(index++);
 		i |= (b & 0x7F) << 14;
 		if (b >= 0)
-			return new VInt(3, i);
-		b = buffer.get(index++);
+			return (long) 3 << 32 | i & 0xFFFFFFFFL;
+		b = data[bufferNumber].get(index++);
 		i |= (b & 0x7F) << 21;
 		if (b >= 0)
-			return new VInt(4, i);
-		b = buffer.get(index++);
+			return (long) 4 << 32 | i & 0xFFFFFFFFL;
+		b = data[bufferNumber].get(index++);
 		// Warning: the next ands use 0x0F / 0xF0 - beware copy/paste errors:
 		i |= (b & 0x0F) << 28;
 		if ((b & 0xF0) == 0)
-			return new VInt(5, i);
+			return (long) 5 << 32 | i & 0xFFFFFFFFL;
 		throw new RuntimeException("Invalid vInt detected (too many bits)");
 	}
 

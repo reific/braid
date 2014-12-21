@@ -34,7 +34,7 @@ public interface Buffer {
 
 	public abstract void putByte(byte value);
 
-	public abstract VInt getVInt(int logicalIndex);
+	public abstract long getVInt(int logicalIndex);
 
 	public abstract byte getByte(int logicalIndex);
 
