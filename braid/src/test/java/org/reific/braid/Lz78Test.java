@@ -17,9 +17,39 @@ import org.junit.Test;
 public class Lz78Test {
 
 	@Test
-	public void testBasicFunctionality() {
+	public void testBasicFunctionalityLastCharacterNotInDictionary() {
 		final Knot knot = Knots.builder().build();
 		String string = new String("this that the other");
+		Braid braid = knot.braid(string);
+		assertEquals(string, braid.get());
+		// A new String instance has been created from the compressed data.
+		assertNotSame(string, braid.get());
+	}
+
+	@Test
+	public void testBasicFunctionalityLastCharacterInDictionary() {
+		final Knot knot = Knots.builder().build();
+		String string = new String("this that the othert");
+		Braid braid = knot.braid(string);
+		assertEquals(string, braid.get());
+		// A new String instance has been created from the compressed data.
+		assertNotSame(string, braid.get());
+	}
+
+	@Test
+	public void testBasicFunctionalityLastTwoCharactersInDictionary() {
+		final Knot knot = Knots.builder().build();
+		String string = new String("this that the otherth");
+		Braid braid = knot.braid(string);
+		assertEquals(string, braid.get());
+		// A new String instance has been created from the compressed data.
+		assertNotSame(string, braid.get());
+	}
+
+	@Test
+	public void testBasicFunctionalityLastTwoCharactersInDictionaryTwice() {
+		final Knot knot = Knots.builder().build();
+		String string = new String("this that the otherthth");
 		Braid braid = knot.braid(string);
 		assertEquals(string, braid.get());
 		// A new String instance has been created from the compressed data.

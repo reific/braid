@@ -98,115 +98,80 @@ class LZ78KnotStorage implements KnotStorage {
 	@Override
 	public int store(final String string) {
 		int startingBufferPosition = byteBuffer.nextWritePosition();
-
 		byte[] stringBytes = string.getBytes(STRING_CHARSET);
 		int stringLength = stringBytes.length;
-		byte[] currentPhrase1 = new byte[stringLength];
-		int currentPhraseLength = 0;
+
 		// 0 is used as the terminating code instead of -1, since storing negative numbers in VInt form would be expensive. 
 		// This doesn't affect the external int braid location pointers or the indexes into the byteBuffer. 
 		// Zero is still a valid location (which will contain the length of the first record)
-		int currentPointer = 0;
 
 		byteBuffer.putVInt(stringLength);
 
-		for (int i = 0; i < stringLength; i++) {
+		int i = 0;
+		while (i < stringLength) {
 			int bufferPosition = byteBuffer.nextWritePosition();
-			byte token = stringBytes[i];
-			currentPhrase1[currentPhraseLength++] = token;
-			int pointer = dictionaryGet(currentPhrase1, currentPhraseLength);
-
-			if (pointer == -1) {
-				// not found in dictionary. Add to dictionary and compressed
-				// stream and start over
-				byteBuffer.putByte(token);
-				byteBuffer.putVInt(currentPointer);
-				dictionaryPut(currentPhrase1, currentPhraseLength, bufferPosition);
-				currentPhrase1 = new byte[stringLength];
-				currentPhraseLength = 0;
-				currentPointer = 0;
-			} else if (i == stringLength - 1) {
-				// found in dictionary, but at the end of the input string.
-				// Add to the output stream
-				byteBuffer.putByte(token);
-				byteBuffer.putVInt(currentPointer);
-				currentPhrase1 = new byte[stringLength];
-				currentPhraseLength = 0;
-				currentPointer = 0;
-			} else {
-				// found in dictionary. keep parsing to match a longer
-				// dictionary entry
-				currentPointer = pointer;
+			// walk forward over string lengths for probable dictionary matches
+			int length = 1;
+			int[] possibleIndexes = null;
+			int[] nextPossibleIndexes = dictionary.get(stringBytes, i, length);
+			// ignore the final element of stringBytes
+			for (length = 2; length < (stringLength - i + 1) && nextPossibleIndexes.length > 0; length++) {
+				possibleIndexes = nextPossibleIndexes;
+				nextPossibleIndexes = dictionary.get(stringBytes, i, length);
 			}
+			// readjust
+			length = length - 2;
+			// 
+			// possibleIndexes will be null or non-empty now
+			int confirmedIndex = -1;
+			if (possibleIndexes != null) {
+				confirmedIndex = confirmIndex(possibleIndexes, stringBytes, i, length--);
+				while (confirmedIndex == -1 && length > 0) {
+					possibleIndexes = dictionary.get(stringBytes, i, length);
+					confirmedIndex = confirmIndex(possibleIndexes, stringBytes, i, length--);
+				}
+				// readjust
+				length++;
+			}
+			byteBuffer.putByte(stringBytes[i + length]);
+			byteBuffer.putVInt(confirmedIndex == -1 ? 0 : confirmedIndex);
+			if (i + length + 1 != stringLength) {
+				dictionaryPut(stringBytes, i, length + 1, bufferPosition);
+			}
+			i += length + 1;
 		}
 		return startingBufferPosition;
 	}
 
-	private void dictionaryPut(byte[] string, int stringLength, int value) {
-		dictionary.put(string, stringLength, value);
+	private void dictionaryPut(byte[] string, int offset, int stringLength, int value) {
+		dictionary.put(string, offset, stringLength, value);
 	}
 
-	private int dictionaryGet(byte[] string, int length) {
-		int[] possibleIndexes = dictionary.get(string, length);
-		if (possibleIndexes.length == 0) {
-			return -1;
-		}
-		for (int i = 0; i < possibleIndexes.length; i++) {
-			byte[] possibleMatch = lookupPointer(possibleIndexes[i], length);
-			if (possibleMatch == null) {
-				continue;
+	private int confirmIndex(int[] possibleIndexes, byte[] string, int offset, int length) {
+
+		forloop: for (int i = 0; i < possibleIndexes.length; i++) {
+			int possibleIndex = possibleIndexes[i];
+			int resultCount = 0;
+			while (possibleIndex > 0) {
+				if (resultCount >= length) {
+					// found a match longer that the expectedLength. Not a match.
+					continue forloop;
+				}
+				byte character = byteBuffer.getByte(possibleIndex);
+				if (string[offset + length - 1 - resultCount++] != character) {
+					continue forloop;
+				}
+				long nextVInt = byteBuffer.getVInt(possibleIndex + 1);
+				// take the low-order int
+				possibleIndex = (int) nextVInt;
 			}
-			//Key key = new LZ78Dictionary.Key(string, length);
-			//Key key2 = new LZ78Dictionary.Key(possibleMatch, possibleMatch.length);
-			if (equals(string, length, possibleMatch, possibleMatch.length)) {
-				return possibleIndexes[i];
+			if (resultCount < length) {
+				// found a match shorter that the expectedLength. Not a match.
+				continue forloop;
 			}
+			return possibleIndexes[i];
 		}
 		return -1;
-	}
-
-	private static boolean equals(byte[] a, int aLength, byte[] b, int bLength) {
-		if (aLength != bLength) {
-			return false;
-		}
-		for (int i = 0; i < aLength; i++) {
-			if (a[i] != b[i]) {
-				return false;
-			}
-		}
-		return true;
-	}
-
-	/**
-	 * lookup the given index in the compressed buffer for a string of the given length. 
-	 * 
-	 * In a traditional LZ78 implementation this would be accomplished by looking up
-	 * directly in the dictionary, but our dictionary only contains hashes of keys (i.e., potential matches), not the actual keys.
-	 * 
-	 * @param index to a location in the compressed buffer. This must be a valid index, or behavior is undefined.
-	 * @param expectedLength of the string being looked up. If the string found at the given index is of a different length, null will be returned.
-	 * 
-	 * @return the string at the given index unless it is not of the expected length, in which case null is returned.
-	 */
-	private byte[] lookupPointer(int index, int expectedLength) {
-		byte[] result = new byte[expectedLength];
-		int resultCount = 0;
-		while (index > 0) {
-			if (resultCount >= expectedLength) {
-				// found a match longer that the expectedLength. Not a match.
-				return null;
-			}
-			byte character = byteBuffer.getByte(index);
-			long nextVInt = byteBuffer.getVInt(index + 1);
-			// take the low-order int
-			index = (int) nextVInt;
-			result[result.length - 1 - resultCount++] = character;
-		}
-		if (resultCount < expectedLength) {
-			// found a match shorter that the expectedLength. Not a match.
-			return null;
-		}
-		return result;
 	}
 
 	@Override

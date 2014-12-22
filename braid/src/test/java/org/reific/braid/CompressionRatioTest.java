@@ -34,20 +34,30 @@ public class CompressionRatioTest {
 
 	@Test
 	public void testCompressionRatio() throws Exception {
+		for (int j = 0; j < 1; j++) {
+			final Knot knot = Knots.builder().build();
+			int uncompressedSizeUtf16 = 0;
 
+			for (int i = 0; i < 10000; i++) {
+				String line = "Science is the great antidote to the poison of enthusiasm and superstition.";
+
+				uncompressedSizeUtf16 += line.getBytes(StandardCharsets.UTF_16).length;
+				knot.braid(line);
+			}
+
+			assertThat((double) knot.spaceUsed() / uncompressedSizeUtf16, closeTo(0.040684, 0.000001));
+			knot.flush();
+			assertThat((double) knot.spaceUsed() / uncompressedSizeUtf16, closeTo(0.032615, 0.000001));
+		}
+	}
+
+	@Test
+	public void testCompressionRatioDebug() throws Exception {
 		final Knot knot = Knots.builder().build();
-		int uncompressedSizeUtf16 = 0;
-
-		for (int i = 0; i < 10000; i++) {
-			String line = "Science is the great antidote to the poison of enthusiasm and superstition.";
-
-			uncompressedSizeUtf16 += line.getBytes(StandardCharsets.UTF_16).length;
+		for (int i = 0; i < 100; i++) {
+			String line = "AB";
 			knot.braid(line);
 		}
-
-		assertThat((double) knot.spaceUsed() / uncompressedSizeUtf16, closeTo(0.040684, 0.000001));
-		knot.flush();
-		assertThat((double) knot.spaceUsed() / uncompressedSizeUtf16, closeTo(0.032615, 0.000001));
 	}
 
 	@Test
@@ -60,7 +70,7 @@ public class CompressionRatioTest {
 		final long expectedDictionarySpaceUsed = dictionarySize * 2 * 4; // two int arrays
 		final long expectTotalSpaceUsed = expectedBufferSize + expectedDictionarySpaceUsed;
 		final Knot knot = Knots.builder()
-		// remember the last string
+				// remember the last string
 				.rememberLast(1)
 				// explicit size and ratio (for comparing)
 				.lz78(expectedBufferSize, 1.0f)
@@ -125,5 +135,56 @@ public class CompressionRatioTest {
 		assertThat((double) knot.spaceUsed() / uncompressedSizeUtf16, closeTo(0.479934, 0.000001));
 		knot.flush();
 		assertThat((double) knot.spaceUsed() / uncompressedSizeUtf16, closeTo(0.131875, 0.000001));
+	}
+
+	@Test
+	public void testFlushFrequency() throws Exception {
+
+		int flushFrequency = 128;
+
+		final Knot knot = Knots.builder().lz78Dictionary(2, 0.75f).build();
+		int uncompressedSizeUtf16 = 0;
+		int lineCount = 0;
+		long maxSizeUsed = 0;
+
+		InputStream stream = this.getClass().getResourceAsStream("/hayek-road-to-serfdom.txt");
+
+		try (BufferedReader br = new BufferedReader(new InputStreamReader(stream))) {
+			for (String line; (line = br.readLine()) != null;) {
+				uncompressedSizeUtf16 += line.getBytes(StandardCharsets.UTF_16).length;
+				if (lineCount++ % flushFrequency == 0) {
+					knot.flush();
+				}
+				knot.braid(line);
+				maxSizeUsed = Math.max(maxSizeUsed, knot.spaceUsed());
+			}
+		}
+		// By flushing every 256 lines, we can keep the dictionary to a reasonable size an achieve a < 1.0 overall compression ratio
+		assertThat((double) maxSizeUsed / uncompressedSizeUtf16, closeTo(.7211621, 0.000001));
+
+	}
+
+	@Test
+	public void testCompressionRatioReadingFullFile() throws Exception {
+
+		final Knot knot = Knots.builder().lz78Dictionary(2, 0.75f).build();
+		int uncompressedSizeUtf16 = 0;
+
+		InputStream stream = this.getClass().getResourceAsStream("/hayek-road-to-serfdom.txt");
+
+		try (BufferedReader br = new BufferedReader(new InputStreamReader(stream))) {
+			for (String line; (line = br.readLine()) != null;) {
+				uncompressedSizeUtf16 += line.getBytes(StandardCharsets.UTF_16).length;
+				knot.braid(line);
+			}
+		}
+
+		// Make explicit assertions about compression ratios, so that if anything changes (good or bad),
+		// we know it.
+		// TODO: This Knot is using more space (before flush) than the equivalent String data. It would be nice if we could
+		// get this below 1.0 (even though this isn't an intended use-case)
+		assertThat((double) knot.spaceUsed() / uncompressedSizeUtf16, closeTo(1.463411, 0.000001));
+		knot.flush();
+		assertThat((double) knot.spaceUsed() / uncompressedSizeUtf16, closeTo(0.437877, 0.000001));
 	}
 }

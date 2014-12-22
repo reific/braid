@@ -77,9 +77,10 @@ class LZ78HashOnlyDictionary {
 	/**
 	 * Lookup the entry with the given byte[] key, only considering the first 'length' elements of the key. 
 	 * @return a list of possible matches, which can include zero or more false-positives.
+	 * 
 	 */
-	public int[] get(byte[] key, int length) {
-		int hashCode = computeHashCode(key, length);
+	public int[] get(byte[] key, int offset, int length) {
+		int hashCode = computeHashCode(key, offset, length);
 		// masked to prevent negative
 		int lowerBound = (hashCode & 0x7FFFFFFF) % values.length;
 		int numMatches = 0;
@@ -102,11 +103,12 @@ class LZ78HashOnlyDictionary {
 		return result;
 	}
 
-	private static int computeHashCode(byte[] key, int length) {
+	private static int computeHashCode(final byte[] key, final int offset, final int length) {
 		int hashCode = 1;
-		for (int i = 0; i < length; i++) {
+		for (int i = offset; i < length + offset; i++) {
 			hashCode = 31 * hashCode + key[i];
 		}
+		//System.out.println(hashCode);
 		return hashCode;
 	}
 
@@ -114,11 +116,11 @@ class LZ78HashOnlyDictionary {
 	 * Store 'value' at the given byte[] key, only considering the first 'length' elements of the key. After calling, 
 	 * callers must not modify any elements of the key within this range.
 	 */
-	public void put(byte[] key, int length, int value) {
+	public void put(byte[] key, int offset, int length, int value) {
 		if (numElements >= threshold) {
 			rehash();
 		}
-		int hashCode = computeHashCode(key, length);
+		int hashCode = computeHashCode(key, offset, length);
 		// masked to prevent negative
 		int location = (hashCode & 0x7FFFFFFF) % values.length;
 
