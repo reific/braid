@@ -107,38 +107,33 @@ class LZ78KnotStorage implements KnotStorage {
 
 		byteBuffer.putVInt(stringLength);
 
-		int i = 0;
-		while (i < stringLength) {
+		int offset = 0;
+		while (offset < stringLength) {
 			int bufferPosition = byteBuffer.nextWritePosition();
 			// walk forward over string lengths for probable dictionary matches
-			int length = 1;
-			int[] possibleIndexes = null;
-			int[] nextPossibleIndexes = dictionary.get(stringBytes, i, length);
-			// ignore the final element of stringBytes
-			for (length = 2; length < (stringLength - i + 1) && nextPossibleIndexes.length > 0; length++) {
-				possibleIndexes = nextPossibleIndexes;
-				nextPossibleIndexes = dictionary.get(stringBytes, i, length);
-			}
-			// readjust
-			length = length - 2;
-			// 
-			// possibleIndexes will be null or non-empty now
+			// ignore the final element of stringBytes (because we have to put *something* in the compressed stream)
+			int x = dictionary.indexOfLongestPossiblePrefix(stringBytes, offset, stringLength - offset - 1);
+			//TODO fix up this ugliness
+			int length = x == -1 ? 0 : x - offset + 1;
+
+			// now walk backwards until we confirm a match
 			int confirmedIndex = -1;
-			if (possibleIndexes != null) {
-				confirmedIndex = confirmIndex(possibleIndexes, stringBytes, i, length--);
+			if (length > 0) {
+				int[] possibleIndexes = dictionary.get(stringBytes, offset, length);
+				confirmedIndex = confirmIndex(possibleIndexes, stringBytes, offset, length--);
 				while (confirmedIndex == -1 && length > 0) {
-					possibleIndexes = dictionary.get(stringBytes, i, length);
-					confirmedIndex = confirmIndex(possibleIndexes, stringBytes, i, length--);
+					possibleIndexes = dictionary.get(stringBytes, offset, length);
+					confirmedIndex = confirmIndex(possibleIndexes, stringBytes, offset, length--);
 				}
 				// readjust
 				length++;
 			}
-			byteBuffer.putByte(stringBytes[i + length]);
+			byteBuffer.putByte(stringBytes[offset + length]);
 			byteBuffer.putVInt(confirmedIndex == -1 ? 0 : confirmedIndex);
-			if (i + length + 1 != stringLength) {
-				dictionaryPut(stringBytes, i, length + 1, bufferPosition);
+			if (offset + length + 1 != stringLength) {
+				dictionaryPut(stringBytes, offset, length + 1, bufferPosition);
 			}
-			i += length + 1;
+			offset += length + 1;
 		}
 		return startingBufferPosition;
 	}
@@ -147,23 +142,29 @@ class LZ78KnotStorage implements KnotStorage {
 		dictionary.put(string, offset, stringLength, value);
 	}
 
-	private int confirmIndex(int[] possibleIndexes, byte[] string, int offset, int length) {
-
+	private int confirmIndex(final int[] possibleIndexes, final byte[] string, final int offset, int length) {
+		//		try {
+		//			System.out.println(new String(string, offset, length, "UTF-8"));
+		//		} catch (UnsupportedEncodingException e) {
+		//			// TODO Auto-generated catch block
+		//			e.printStackTrace();
+		//		}
+		final int upperBound = offset + length - 1;
 		forloop: for (int i = 0; i < possibleIndexes.length; i++) {
-			int possibleIndex = possibleIndexes[i];
+			int pointer = possibleIndexes[i];
 			int resultCount = 0;
-			while (possibleIndex > 0) {
+			while (pointer > 0) {
 				if (resultCount >= length) {
 					// found a match longer that the expectedLength. Not a match.
 					continue forloop;
 				}
-				byte character = byteBuffer.getByte(possibleIndex);
-				if (string[offset + length - 1 - resultCount++] != character) {
+				byte character = byteBuffer.getByte(pointer);
+				if (string[upperBound - resultCount++] != character) {
 					continue forloop;
 				}
-				long nextVInt = byteBuffer.getVInt(possibleIndex + 1);
+				long nextVInt = byteBuffer.getVInt(pointer + 1);
 				// take the low-order int
-				possibleIndex = (int) nextVInt;
+				pointer = (int) nextVInt;
 			}
 			if (resultCount < length) {
 				// found a match shorter that the expectedLength. Not a match.
@@ -177,9 +178,10 @@ class LZ78KnotStorage implements KnotStorage {
 	@Override
 	public String lookup(int index) {
 		final long sizeOfStringVInt = byteBuffer.getVInt(index);
+		// take low-order int
 		final int sizeOfString = (int) sizeOfStringVInt;
+		// high-order int
 		final int sizeOfStringbytesUsed = (int) (sizeOfStringVInt >> 32);
-		// take low-order byte
 		byte[] result = new byte[sizeOfString];
 		byte[] innerResult = new byte[sizeOfString];
 		int resultCount = 0;

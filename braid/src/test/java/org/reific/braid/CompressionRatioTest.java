@@ -34,22 +34,37 @@ public class CompressionRatioTest {
 
 	@Test
 	public void testCompressionRatio() throws Exception {
-		for (int j = 0; j < 1; j++) {
-			final Knot knot = Knots.builder().build();
-			int uncompressedSizeUtf16 = 0;
+		final Knot knot = Knots.builder().build();
+		int uncompressedSizeUtf16 = 0;
 
-			for (int i = 0; i < 10000; i++) {
-				String line = "Science is the great antidote to the poison of enthusiasm and superstition.";
+		for (int i = 0; i < 10000; i++) {
+			String line = "Science is the great antidote to the poison of enthusiasm and superstition.";
 
-				uncompressedSizeUtf16 += line.getBytes(StandardCharsets.UTF_16).length;
-				knot.braid(line);
-			}
-
-			assertThat((double) knot.spaceUsed() / uncompressedSizeUtf16, closeTo(0.040684, 0.000001));
-			knot.flush();
-			assertThat((double) knot.spaceUsed() / uncompressedSizeUtf16, closeTo(0.032615, 0.000001));
+			uncompressedSizeUtf16 += line.getBytes(StandardCharsets.UTF_16).length;
+			knot.braid(line);
 		}
+
+		assertThat((double) knot.spaceUsed() / uncompressedSizeUtf16, closeTo(0.040684, 0.000001));
+		knot.flush();
+		assertThat((double) knot.spaceUsed() / uncompressedSizeUtf16, closeTo(0.032615, 0.000001));
 	}
+
+	//	@Test
+	//	public void testCompressionRatioProfile() throws Exception {
+	//		for (int j = 0; j < 40000; j++) {
+	//			final Knot knot = Knots.builder().build();
+	//
+	//			for (int i = 0; i < 10000; i++) {
+	//				String line = "Science is the great antidote to the poison of enthusiasm and superstition.";
+	//				knot.braid(line);
+	//			}
+	//			//			System.out.println("run gc");
+	//			//			System.gc();
+	//			//			System.gc();
+	//			//			Thread.sleep(5000);
+	//
+	//		}
+	//	}
 
 	@Test
 	public void testCompressionRatioDebug() throws Exception {

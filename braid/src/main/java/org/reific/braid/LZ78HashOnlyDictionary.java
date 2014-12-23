@@ -28,7 +28,9 @@ class LZ78HashOnlyDictionary {
 	 * (from java.utl.Hashtable)
 	 */
 	private static final int MAX_ARRAY_SIZE = Integer.MAX_VALUE - 8;
+	private static final int[] EMPTY_RESULT = new int[0];
 
+	private int capacity;
 	private int[] values;
 	private int[] fullHashes;
 	private int numElements;
@@ -36,6 +38,7 @@ class LZ78HashOnlyDictionary {
 	private int threshold;
 
 	LZ78HashOnlyDictionary(int initialCapacity, float loadFactor) {
+		capacity = initialCapacity;
 		values = new int[initialCapacity];
 		fullHashes = new int[initialCapacity];
 		this.loadFactor = loadFactor;
@@ -56,6 +59,7 @@ class LZ78HashOnlyDictionary {
 			}
 			newCapacity = MAX_ARRAY_SIZE;
 		}
+		capacity = newCapacity;
 		values = new int[newCapacity];
 		fullHashes = new int[newCapacity];
 
@@ -82,33 +86,95 @@ class LZ78HashOnlyDictionary {
 	public int[] get(byte[] key, int offset, int length) {
 		int hashCode = computeHashCode(key, offset, length);
 		// masked to prevent negative
-		int lowerBound = (hashCode & 0x7FFFFFFF) % values.length;
-		int numMatches = 0;
+		int lowerBound = (hashCode & 0x7FFFFFFF) % capacity;
+		int upperBound = lowerBound;
 		int actualMatches = 0;
 		// linear probe for free space 
-		while (values[(lowerBound + numMatches) % values.length] != 0) {
-			if (fullHashes[(lowerBound + numMatches) % values.length] == hashCode) {
+		while (values[upperBound % capacity] != 0) {
+			if (fullHashes[upperBound % capacity] == hashCode) {
 				actualMatches++;
 			}
-			numMatches++;
+			upperBound++;
 		}
+		if (upperBound == lowerBound) {
+			return EMPTY_RESULT;
+		}
+		int numMatches = upperBound - lowerBound;
+
 		int[] result = new int[actualMatches];
 		int resultIndex = 0;
 		for (int i = 0; i < numMatches; i++) {
-			if (fullHashes[(lowerBound + i) % values.length] == hashCode) {
+			if (fullHashes[(lowerBound + i) % capacity] == hashCode) {
 				// value offset by 1 so zero-initialized array means not-present
-				result[resultIndex++] = values[(lowerBound + i) % values.length] - 1;
+				result[resultIndex++] = values[(lowerBound + i) % capacity] - 1;
 			}
 		}
 		return result;
 	}
 
+	//	public boolean possiblyExists(byte[] key, int offset, int length) {
+	//		int hashCode = computeHashCode(key, offset, length);
+	//		// masked to prevent negative
+	//		int lowerBound = (hashCode & 0x7FFFFFFF);
+	//		if (lowerBound >= capacity) {
+	//			lowerBound = lowerBound % capacity;
+	//		}
+	//		int upperBound = lowerBound;
+	//		// linear probe for free space 
+	//		while (values[upperBound] != 0) {
+	//			if (fullHashes[upperBound] == hashCode) {
+	//				return true;
+	//			}
+	//			upperBound++;
+	//			if (upperBound >= capacity) {
+	//				upperBound = upperBound % capacity;
+	//			}
+	//			else if (upperBound < 0) {
+	//				upperBound += capacity;
+	//			}
+	//		}
+	//		return false;
+	//	}
+
+	final int indexOfLongestPossiblePrefix(final byte[] key, final int offset, final int length) {
+		int hashCode = 1;
+		int indexFound = -1;
+		final int upperBound = length + offset;
+		forloop:
+		for (int i = offset; i < upperBound; i++) {
+			hashCode = 31 * hashCode + key[i];
+			// masked to prevent negative
+			int index = hashCode & 0x7FFFFFFF;
+			if (index >= capacity) {
+				index = index % capacity;
+			}
+			while (values[index] != 0) {
+				if (fullHashes[index] == hashCode) {
+					indexFound = i;
+					continue forloop;
+				}
+				index++;
+				if (index >= capacity) {
+					index = index % capacity;
+				}
+				//integer overflow
+				else if (index < 0) {
+					index += capacity;
+				}
+			}
+			if (indexFound == -1) {
+				return -1;
+			}
+		}
+		return indexFound;
+	}
+
 	private static int computeHashCode(final byte[] key, final int offset, final int length) {
 		int hashCode = 1;
-		for (int i = offset; i < length + offset; i++) {
+		final int upperBound = length + offset;
+		for (int i = offset; i < upperBound; i++) {
 			hashCode = 31 * hashCode + key[i];
 		}
-		//System.out.println(hashCode);
 		return hashCode;
 	}
 

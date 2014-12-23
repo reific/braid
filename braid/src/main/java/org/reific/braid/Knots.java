@@ -86,8 +86,8 @@ public class Knots {
 		public Knot build() {
 			checkAlreadyBuilt();
 			built = true;
-			//AutoGrowingByteArray buffer = new AutoGrowingByteArray(lz78BufferSize, lz78GrowthFactor);
-			Buffer buffer = new AutoGrowingByteBuffer(lz78BufferSize, lz78GrowthFactor, direct);
+			AutoGrowingByteArray buffer = new AutoGrowingByteArray(lz78BufferSize, lz78GrowthFactor);
+			//Buffer buffer = new AutoGrowingByteBuffer(lz78BufferSize, lz78GrowthFactor, direct);
 
 			List<MutableInterner> mutableInterners = new ArrayList<MutableInterner>();
 			List<Interner> internerList = new ArrayList<Interner>(1);
